@@ -1,0 +1,223 @@
+/* Routine Modal Styles */
+/* Inherits base styles from TaskModal.css */
+
+.frequency-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.frequency-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.frequency-option:hover {
+  background: #e5e7eb;
+}
+
+.frequency-option input[type="radio"] {
+  accent-color: #4A90D9;
+}
+
+.frequency-option input[type="radio"]:checked + span {
+  color: #4A90D9;
+  font-weight: 500;
+}
+
+/* Day of Week Selector */
+.day-of-week-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.day-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: #f3f4f6;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.day-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.day-checkbox:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.day-checkbox.selected {
+  background: #4A90D9;
+  border-color: #4A90D9;
+  color: white;
+}
+
+.day-checkbox.selected:hover {
+  background: #3b7dc4;
+  border-color: #3b7dc4;
+}
+
+/* Quick Select Buttons */
+.quick-select-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.quick-btn.clear {
+  color: #6b7280;
+}
+
+.quick-btn.clear:hover {
+  color: #dc2626;
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+/* Helper Text */
+.helper-text {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4A90D9;
+  cursor: pointer;
+}
+
+/* Modal Actions - Match TaskModal */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel {
+  padding: 10px 20px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.btn-submit {
+  padding: 10px 24px;
+  background: #4A90D9;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-submit:hover {
+  background: #3b7dc4;
+}
+
+.btn-submit:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Submit Error */
+.submit-error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 12px;
+  background: #fef2f2;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .frequency-options {
+    flex-direction: column;
+  }
+  
+  .frequency-option {
+    width: 100%;
+  }
+
+  .day-of-week-selector {
+    justify-content: space-between;
+  }
+
+  .day-checkbox {
+    width: 40px;
+    height: 40px;
+    font-size: 0.8125rem;
+  }
+
+  .quick-select-buttons {
+    justify-content: center;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+  }
+}
