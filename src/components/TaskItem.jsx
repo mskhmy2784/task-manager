@@ -8,13 +8,24 @@ import {
   Copy,
   Link as LinkIcon,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  Square,
+  CheckSquare
 } from 'lucide-react';
 import './TaskItem.css';
 
-const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
+const TaskItem = ({ 
+  task, 
+  onEdit, 
+  onCopy, 
+  isFuture = false,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelect = null
+}) => {
   const { updateTask, deleteTask, getMainCategory, getSubCategory, tags } = useData();
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [showLinks, setShowLinks] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -85,30 +96,77 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
     setShowMenu(false);
   };
 
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+    if (showMenu) {
+      setShowMenu(false);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 140
+      });
+      setShowMenu(true);
+    }
+  };
+
+  const handleCardClick = () => {
+    if (selectionMode && onToggleSelect) {
+      onToggleSelect(task.id);
+    }
+  };
+
   const isOverdue = task.dueDate && task.dueDate < new Date().toISOString().split('T')[0] && task.status !== 'done';
 
   return (
-    <div className={`task-item-card ${task.status} ${isOverdue ? 'overdue' : ''} ${isFuture ? 'future' : ''}`}>
+    <div 
+      className={`task-item-card ${task.status} ${isOverdue ? 'overdue' : ''} ${isFuture ? 'future' : ''} ${selectionMode ? 'selection-mode' : ''} ${isSelected ? 'selected' : ''}`}
+      onClick={handleCardClick}
+    >
       <div className="task-main">
-        <button
-          className={`checkbox ${task.status === 'done' ? 'checked' : ''}`}
-          onClick={handleToggleComplete}
-          disabled={isUpdating}
-        >
-          {task.status === 'done' && <Check size={14} />}
-        </button>
+        {selectionMode ? (
+          <button
+            className={`selection-checkbox ${isSelected ? 'checked' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onToggleSelect) onToggleSelect(task.id);
+            }}
+          >
+            {isSelected ? <CheckSquare size={20} /> : <Square size={20} />}
+          </button>
+        ) : (
+          <button
+            className={`checkbox ${task.status === 'done' ? 'checked' : ''}`}
+            onClick={handleToggleComplete}
+            disabled={isUpdating}
+          >
+            {task.status === 'done' && <Check size={14} />}
+          </button>
+        )}
 
-        <div className="task-content" onClick={() => onEdit(task)}>
-          <div className="task-title-row">
+        <div className="task-content">
+          <div className="task-header">
             <span className="task-title">{task.title}</span>
             <div className="task-badges">
+              {mainCategory && (
+                <span
+                  className="category-badge"
+                  style={{ backgroundColor: mainCategory.color + '20', color: mainCategory.color }}
+                >
+                  {mainCategory.name}
+                  {subCategory && ` / ${subCategory.name}`}
+                </span>
+              )}
               <span className={`priority-badge ${task.priority}`}>
-                {priorityLabels[task.priority]}
+                {priorityLabels[task.priority] || '中'}
               </span>
-              <div className="status-dropdown-wrapper" onClick={(e) => e.stopPropagation()}>
+              <div className="status-dropdown-wrapper">
                 <button
                   className={`status-badge ${task.status}`}
-                  onClick={() => setShowStatusMenu(!showStatusMenu)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowStatusMenu(!showStatusMenu);
+                  }}
                   disabled={isUpdating}
                 >
                   {statusLabels[task.status] || '未着手'}
@@ -116,13 +174,16 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
                 </button>
                 {showStatusMenu && (
                   <>
-                    <div className="status-backdrop" onClick={() => setShowStatusMenu(false)} />
+                    <div className="status-backdrop" onClick={(e) => { e.stopPropagation(); setShowStatusMenu(false); }} />
                     <div className="status-dropdown">
                       {statusOptions.map(option => (
                         <button
                           key={option.value}
                           className={`status-option ${option.value} ${task.status === option.value ? 'active' : ''}`}
-                          onClick={() => handleStatusChange(option.value)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(option.value);
+                          }}
                         >
                           {option.label}
                         </button>
@@ -135,12 +196,6 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
           </div>
 
           <div className="task-meta">
-            {mainCategory && (
-              <span className="category-label" style={{ color: mainCategory.color }}>
-                {mainCategory.name}
-                {subCategory && ` > ${subCategory.name}`}
-              </span>
-            )}
             {task.startDate && (
               <span className="start-date">
                 開始: {task.startDate}{task.startTime ? ` ${task.startTime}` : ''}
@@ -173,49 +228,57 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
           )}
         </div>
 
-        <div className="task-actions">
-          {taskLinks.length > 0 && (
-            <button
-              className="action-btn link-btn"
-              onClick={() => setShowLinks(!showLinks)}
-              title="リンク"
-            >
-              <LinkIcon size={16} />
-              <span className="link-count">{taskLinks.length}</span>
-            </button>
-          )}
-
-          <div className="menu-wrapper">
-            <button
-              className="action-btn menu-btn"
-              onClick={() => setShowMenu(!showMenu)}
-            >
-              <MoreVertical size={16} />
-            </button>
-
-            {showMenu && (
-              <>
-                <div className="menu-backdrop" onClick={() => setShowMenu(false)} />
-                <div className="dropdown-menu">
-                  <button onClick={() => { onEdit(task); setShowMenu(false); }}>
-                    <Edit size={14} />
-                    編集
-                  </button>
-                  {onCopy && (
-                    <button onClick={() => { onCopy(task); setShowMenu(false); }}>
-                      <Copy size={14} />
-                      コピー
-                    </button>
-                  )}
-                  <button onClick={handleDelete} className="delete">
-                    <Trash2 size={14} />
-                    削除
-                  </button>
-                </div>
-              </>
+        {!selectionMode && (
+          <div className="task-actions">
+            {taskLinks.length > 0 && (
+              <button
+                className="action-btn link-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowLinks(!showLinks);
+                }}
+                title="リンク"
+              >
+                <LinkIcon size={16} />
+                <span className="link-count">{taskLinks.length}</span>
+              </button>
             )}
+
+            <div className="menu-wrapper">
+              <button
+                className="action-btn menu-btn"
+                onClick={handleMenuClick}
+              >
+                <MoreVertical size={16} />
+              </button>
+
+              {showMenu && (
+                <>
+                  <div className="menu-backdrop" onClick={() => setShowMenu(false)} />
+                  <div 
+                    className="dropdown-menu"
+                    style={{ top: menuPosition.top, left: menuPosition.left }}
+                  >
+                    <button onClick={(e) => { e.stopPropagation(); onEdit(task); setShowMenu(false); }}>
+                      <Edit size={14} />
+                      編集
+                    </button>
+                    {onCopy && (
+                      <button onClick={(e) => { e.stopPropagation(); onCopy(task); setShowMenu(false); }}>
+                        <Copy size={14} />
+                        コピー
+                      </button>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} className="delete">
+                      <Trash2 size={14} />
+                      削除
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {showLinks && taskLinks.length > 0 && (
@@ -227,6 +290,7 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
               target="_blank"
               rel="noopener noreferrer"
               className="link-item"
+              onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink size={14} />
               {link.name}
