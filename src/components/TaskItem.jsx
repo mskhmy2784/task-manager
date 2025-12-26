@@ -28,6 +28,7 @@ const TaskItem = ({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [showLinks, setShowLinks] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [statusMenuPosition, setStatusMenuPosition] = useState({ top: 0, left: 0 });
   const [isUpdating, setIsUpdating] = useState(false);
 
   const mainCategory = getMainCategory(task.mainCategoryId);
@@ -165,7 +166,16 @@ const TaskItem = ({
                   className={`status-badge ${task.status}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowStatusMenu(!showStatusMenu);
+                    if (showStatusMenu) {
+                      setShowStatusMenu(false);
+                    } else {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setStatusMenuPosition({
+                        top: rect.bottom + 4,
+                        left: rect.left
+                      });
+                      setShowStatusMenu(true);
+                    }
                   }}
                   disabled={isUpdating}
                 >
@@ -175,7 +185,10 @@ const TaskItem = ({
                 {showStatusMenu && (
                   <>
                     <div className="status-backdrop" onClick={(e) => { e.stopPropagation(); setShowStatusMenu(false); }} />
-                    <div className="status-dropdown">
+                    <div 
+                      className="status-dropdown"
+                      style={{ top: statusMenuPosition.top, left: statusMenuPosition.left }}
+                    >
                       {statusOptions.map(option => (
                         <button
                           key={option.value}

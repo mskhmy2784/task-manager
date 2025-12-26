@@ -139,6 +139,11 @@
   cursor: not-allowed;
 }
 
+/* Search Row */
+.search-row {
+  margin-bottom: 16px;
+}
+
 /* Search Bar */
 .search-bar {
   display: flex;

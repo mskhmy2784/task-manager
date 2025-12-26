@@ -332,20 +332,22 @@ const TaskListPage = () => {
           </div>
         )}
 
-        {/* Search */}
-        <div className="search-bar">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="タスクを検索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button className="clear-search" onClick={() => setSearchQuery('')}>
-              <X size={16} />
-            </button>
-          )}
+        {/* Search - 独立した行 */}
+        <div className="search-row">
+          <div className="search-bar">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="タスクを検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="clear-search" onClick={() => setSearchQuery('')}>
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
