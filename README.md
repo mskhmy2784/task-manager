@@ -2,7 +2,7 @@
 
 React + Google Sheets API を使用した PWA 対応のタスク管理アプリケーション
 
-![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## ✨ 特徴
@@ -197,6 +197,10 @@ id	name	color	createdAt
 MIT License
 
 ## 📜 更新履歴
+
+### v1.0.6 (2025-12-27)
+- 🐛 タスク一覧の3点メニューが表示されない問題を修正
+- ✨ タスク一覧で複数選択・一括削除機能を追加
 
 ### v1.0.5 (2025-12-27)
 - 🔧 IDベースの行検索に変更（インデックスずれによるデータ破損を防止）
