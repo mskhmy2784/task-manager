@@ -141,6 +141,18 @@ export const DataProvider = ({ children }) => {
     const index = routines.findIndex(r => r.id === routineId);
     if (index === -1) throw new Error('Routine not found');
     
+    // Delete related routine logs first (from back to front to avoid index shift)
+    const relatedLogIndices = routineLogs
+      .map((log, idx) => log.routineId === routineId ? idx : -1)
+      .filter(idx => idx !== -1)
+      .reverse(); // Delete from back to front
+    
+    for (const logIndex of relatedLogIndices) {
+      await deleteRow(SHEETS.ROUTINE_LOGS, logIndex);
+    }
+    setRoutineLogs(prev => prev.filter(log => log.routineId !== routineId));
+    
+    // Then delete the routine itself
     await deleteRow(SHEETS.ROUTINES, index);
     setRoutines(prev => prev.filter(r => r.id !== routineId));
   };
