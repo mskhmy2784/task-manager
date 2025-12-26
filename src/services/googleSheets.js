@@ -12,12 +12,27 @@ export const SHEETS = {
   TAGS: 'Tags'
 };
 
+// Custom error class for authentication errors
+export class AuthenticationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AuthenticationError';
+  }
+}
+
 // Get access token from stored auth
 const getAccessToken = () => {
   const token = localStorage.getItem('google_access_token');
   if (!token) {
-    throw new Error('Not authenticated');
+    throw new AuthenticationError('Not authenticated');
   }
+  
+  // Check token expiry
+  const expiry = localStorage.getItem('google_token_expiry');
+  if (expiry && Date.now() >= parseInt(expiry)) {
+    throw new AuthenticationError('Token expired');
+  }
+  
   return token;
 };
 
@@ -34,6 +49,14 @@ const fetchWithAuth = async (url, options = {}) => {
   });
   
   if (!response.ok) {
+    // Handle authentication errors (401, 403)
+    if (response.status === 401 || response.status === 403) {
+      // Clear invalid token
+      localStorage.removeItem('google_access_token');
+      localStorage.removeItem('google_token_expiry');
+      throw new AuthenticationError('Session expired. Please sign in again.');
+    }
+    
     const error = await response.json();
     throw new Error(error.error?.message || 'API request failed');
   }
@@ -62,6 +85,39 @@ export const getSheetData = async (sheetName) => {
   });
 };
 
+// Get sheet headers
+export const getSheetHeaders = async (sheetName) => {
+  const url = `${API_BASE}/${SPREADSHEET_ID}/values/${sheetName}!1:1`;
+  const data = await fetchWithAuth(url);
+  return data.values ? data.values[0] : [];
+};
+
+// Find row index by ID (returns the actual spreadsheet row number, 0-indexed from data rows)
+export const findRowIndexById = async (sheetName, id, idColumn = 'id') => {
+  const url = `${API_BASE}/${SPREADSHEET_ID}/values/${sheetName}`;
+  const data = await fetchWithAuth(url);
+  
+  if (!data.values || data.values.length === 0) {
+    return -1;
+  }
+  
+  const headers = data.values[0];
+  const idColumnIndex = headers.indexOf(idColumn);
+  
+  if (idColumnIndex === -1) {
+    throw new Error(`Column '${idColumn}' not found in sheet '${sheetName}'`);
+  }
+  
+  // Search through all rows (starting from row 1, which is index 1 in the array)
+  for (let i = 1; i < data.values.length; i++) {
+    if (data.values[i][idColumnIndex] === id) {
+      return i - 1; // Return 0-indexed row number (excluding header)
+    }
+  }
+  
+  return -1; // Not found
+};
+
 // Append a row to a sheet
 export const appendRow = async (sheetName, rowData) => {
   // Get headers first to ensure correct column order
@@ -86,7 +142,7 @@ export const appendRow = async (sheetName, rowData) => {
   return response;
 };
 
-// Update a specific row
+// Update a specific row by index (legacy - kept for compatibility)
 export const updateRow = async (sheetName, rowIndex, rowData) => {
   const headers = await getSheetHeaders(sheetName);
   const range = `${sheetName}!A${rowIndex + 2}:${String.fromCharCode(65 + headers.length - 1)}${rowIndex + 2}`;
@@ -102,7 +158,18 @@ export const updateRow = async (sheetName, rowIndex, rowData) => {
   return response;
 };
 
-// Delete a row (by clearing it and then removing)
+// Update a row by ID (recommended)
+export const updateRowById = async (sheetName, id, rowData, idColumn = 'id') => {
+  const rowIndex = await findRowIndexById(sheetName, id, idColumn);
+  
+  if (rowIndex === -1) {
+    throw new Error(`Record with ${idColumn}='${id}' not found in sheet '${sheetName}'`);
+  }
+  
+  return updateRow(sheetName, rowIndex, rowData);
+};
+
+// Delete a row by index (legacy - kept for compatibility)
 export const deleteRow = async (sheetName, rowIndex) => {
   // Get sheet ID first
   const spreadsheet = await fetchWithAuth(`${API_BASE}/${SPREADSHEET_ID}`);
@@ -134,11 +201,37 @@ export const deleteRow = async (sheetName, rowIndex) => {
   return response;
 };
 
-// Get sheet headers
-export const getSheetHeaders = async (sheetName) => {
-  const url = `${API_BASE}/${SPREADSHEET_ID}/values/${sheetName}!1:1`;
-  const data = await fetchWithAuth(url);
-  return data.values ? data.values[0] : [];
+// Delete a row by ID (recommended)
+export const deleteRowById = async (sheetName, id, idColumn = 'id') => {
+  const rowIndex = await findRowIndexById(sheetName, id, idColumn);
+  
+  if (rowIndex === -1) {
+    throw new Error(`Record with ${idColumn}='${id}' not found in sheet '${sheetName}'`);
+  }
+  
+  return deleteRow(sheetName, rowIndex);
+};
+
+// Delete multiple rows by IDs (deletes from back to front to avoid index shift)
+export const deleteRowsByIds = async (sheetName, ids, idColumn = 'id') => {
+  // Find all row indices first
+  const rowIndices = [];
+  for (const id of ids) {
+    const rowIndex = await findRowIndexById(sheetName, id, idColumn);
+    if (rowIndex !== -1) {
+      rowIndices.push({ id, rowIndex });
+    }
+  }
+  
+  // Sort by rowIndex descending (delete from back to front)
+  rowIndices.sort((a, b) => b.rowIndex - a.rowIndex);
+  
+  // Delete each row
+  for (const { rowIndex } of rowIndices) {
+    await deleteRow(sheetName, rowIndex);
+  }
+  
+  return rowIndices.length;
 };
 
 // Batch update multiple cells
