@@ -1,30 +1,8 @@
-/* Task List Page Styles */
+/* Task List Page */
 .task-list-page {
-  max-width: 900px;
+  padding: 24px;
+  max-width: 1200px;
   margin: 0 auto;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  color: #6b7280;
-}
-
-.loading-container .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #4A90D9;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 /* Page Header */
@@ -34,22 +12,28 @@
 
 .header-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
 }
 
 .header-top h1 {
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #1f2937;
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .add-task-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 10px 18px;
   background: #4A90D9;
   border: none;
@@ -64,6 +48,97 @@
   background: #3b7dc4;
 }
 
+/* Selection Mode Button */
+.selection-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selection-mode-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.selection-mode-btn.active {
+  background: #eff6ff;
+  border-color: #4A90D9;
+  color: #4A90D9;
+}
+
+/* Selection Bar */
+.selection-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.select-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #4b5563;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-all-btn:hover {
+  background: #f3f4f6;
+}
+
+.selection-count {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e40af;
+}
+
+.bulk-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #dc2626;
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulk-delete-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.bulk-delete-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
 /* Search Bar */
 .search-bar {
   display: flex;
@@ -71,8 +146,13 @@
   gap: 10px;
   padding: 10px 14px;
   background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  transition: border-color 0.2s ease;
+}
+
+.search-bar:focus-within {
+  border-color: #4A90D9;
 }
 
 .search-bar svg {
@@ -83,9 +163,10 @@
 .search-bar input {
   flex: 1;
   border: none;
-  outline: none;
+  background: none;
   font-size: 0.9375rem;
   color: #1f2937;
+  outline: none;
 }
 
 .search-bar input::placeholder {
@@ -93,24 +174,26 @@
 }
 
 .clear-search {
-  background: none;
+  background: #f3f4f6;
   border: none;
+  border-radius: 50%;
   padding: 4px;
   cursor: pointer;
-  color: #9ca3af;
+  color: #6b7280;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .clear-search:hover {
-  color: #6b7280;
+  background: #e5e7eb;
 }
 
 /* Controls Section */
 .controls-section {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
   gap: 12px;
@@ -319,13 +402,43 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+  .task-list-page {
+    padding: 16px;
+  }
+
   .header-top {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
 
+  .header-actions {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .selection-mode-btn span,
+  .add-task-btn span {
+    display: none;
+  }
+
+  .selection-mode-btn,
   .add-task-btn {
+    padding: 10px 12px;
+  }
+
+  .selection-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .selection-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .bulk-delete-btn {
+    width: 100%;
     justify-content: center;
   }
 

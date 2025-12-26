@@ -7,7 +7,10 @@ import {
   Filter,
   X,
   ArrowUpDown,
-  Search
+  Search,
+  CheckSquare,
+  Square,
+  Trash2
 } from 'lucide-react';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
@@ -19,6 +22,7 @@ const TaskListPage = () => {
     tasks,
     mainCategories,
     tags,
+    deleteTask,
     isLoading
   } = useData();
 
@@ -36,6 +40,11 @@ const TaskListPage = () => {
   const [sortBy, setSortBy] = useState('dueDate');
   const [sortOrder, setSortOrder] = useState('asc');
 
+  // Selection mode state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   // Handle URL parameters
@@ -48,6 +57,13 @@ const TaskListPage = () => {
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
+
+  // Exit selection mode when no tasks are selected
+  useEffect(() => {
+    if (selectionMode && selectedTasks.size === 0) {
+      // Keep selection mode active even if nothing is selected
+    }
+  }, [selectedTasks, selectionMode]);
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
@@ -96,47 +112,48 @@ const TaskListPage = () => {
       result = result.filter(task => 
         task.dueDate && 
         task.dueDate < todayStr && 
-        task.status !== 'done' && 
-        task.status !== 'onHold'
+        task.status !== 'done'
       );
     } else if (specialFilter === 'onHold') {
-      // 保留中: status が onHold
+      // 保留中
       result = result.filter(task => task.status === 'onHold');
     }
 
     // Sort
     result.sort((a, b) => {
-      let comparison = 0;
-      
+      let compareValue = 0;
+
       switch (sortBy) {
         case 'dueDate':
-          const dateA = a.dueDate || '9999-12-31';
-          const dateB = b.dueDate || '9999-12-31';
-          comparison = dateA.localeCompare(dateB);
+          // Empty dates go to end
+          if (!a.dueDate && !b.dueDate) compareValue = 0;
+          else if (!a.dueDate) compareValue = 1;
+          else if (!b.dueDate) compareValue = -1;
+          else compareValue = a.dueDate.localeCompare(b.dueDate);
           break;
         case 'priority':
           const priorityOrder = { veryHigh: 0, high: 1, medium: 2, low: 3 };
-          comparison = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
-          break;
-        case 'title':
-          comparison = a.title.localeCompare(b.title);
+          compareValue = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
           break;
         case 'status':
           const statusOrder = { todo: 0, inProgress: 1, onHold: 2, done: 3 };
-          comparison = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+          compareValue = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+          break;
+        case 'title':
+          compareValue = (a.title || '').localeCompare(b.title || '');
           break;
         case 'createdAt':
-          comparison = (a.createdAt || '').localeCompare(b.createdAt || '');
+          compareValue = (a.createdAt || '').localeCompare(b.createdAt || '');
           break;
         default:
-          comparison = 0;
+          compareValue = 0;
       }
 
-      return sortOrder === 'asc' ? comparison : -comparison;
+      return sortOrder === 'asc' ? compareValue : -compareValue;
     });
 
     return result;
-  }, [tasks, searchQuery, filters, specialFilter, todayStr, sortBy, sortOrder]);
+  }, [tasks, searchQuery, filters, specialFilter, sortBy, sortOrder, todayStr]);
 
   const handleEditTask = (task) => {
     setEditingTask(task);
@@ -161,17 +178,82 @@ const TaskListPage = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ mainCategoryId: '', priority: '', status: '', tagId: '' });
-    setSearchQuery('');
+    setFilters({
+      mainCategoryId: '',
+      priority: '',
+      status: '',
+      tagId: ''
+    });
     setSpecialFilter('');
+    setSearchQuery('');
   };
 
-  const toggleSort = (field) => {
+  const handleSortChange = (field) => {
     if (sortBy === field) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
       setSortOrder('asc');
+    }
+  };
+
+  // Selection mode handlers
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      // Exit selection mode
+      setSelectionMode(false);
+      setSelectedTasks(new Set());
+    } else {
+      // Enter selection mode
+      setSelectionMode(true);
+      setSelectedTasks(new Set());
+    }
+  };
+
+  const toggleTaskSelection = (taskId) => {
+    setSelectedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllTasks = () => {
+    if (selectedTasks.size === filteredTasks.length) {
+      // Deselect all
+      setSelectedTasks(new Set());
+    } else {
+      // Select all
+      setSelectedTasks(new Set(filteredTasks.map(t => t.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTasks.size === 0) return;
+    
+    const confirmMessage = `${selectedTasks.size}件のタスクを削除しますか？`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setIsDeleting(true);
+    try {
+      // Delete tasks one by one
+      const taskIds = Array.from(selectedTasks);
+      for (const taskId of taskIds) {
+        await deleteTask(taskId);
+      }
+      
+      // Clear selection and exit selection mode
+      setSelectedTasks(new Set());
+      setSelectionMode(false);
+    } catch (error) {
+      console.error('Failed to delete tasks:', error);
+      alert('タスクの削除中にエラーが発生しました');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -205,11 +287,50 @@ const TaskListPage = () => {
       <header className="page-header">
         <div className="header-top">
           <h1>タスク一覧</h1>
-          <button className="add-task-btn" onClick={() => setShowModal(true)}>
-            <Plus size={20} />
-            <span>新規タスク</span>
-          </button>
+          <div className="header-actions">
+            <button 
+              className={`selection-mode-btn ${selectionMode ? 'active' : ''}`}
+              onClick={toggleSelectionMode}
+            >
+              <CheckSquare size={18} />
+              <span>{selectionMode ? '選択解除' : '選択'}</span>
+            </button>
+            <button className="add-task-btn" onClick={() => setShowModal(true)}>
+              <Plus size={20} />
+              <span>新規タスク</span>
+            </button>
+          </div>
         </div>
+
+        {/* Selection Mode Bar */}
+        {selectionMode && (
+          <div className="selection-bar">
+            <div className="selection-info">
+              <button 
+                className="select-all-btn"
+                onClick={selectAllTasks}
+              >
+                {selectedTasks.size === filteredTasks.length ? (
+                  <CheckSquare size={18} />
+                ) : (
+                  <Square size={18} />
+                )}
+                <span>すべて選択</span>
+              </button>
+              <span className="selection-count">
+                {selectedTasks.size}件選択中
+              </span>
+            </div>
+            <button 
+              className="bulk-delete-btn"
+              onClick={handleBulkDelete}
+              disabled={selectedTasks.size === 0 || isDeleting}
+            >
+              <Trash2 size={18} />
+              <span>{isDeleting ? '削除中...' : '一括削除'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Search */}
         <div className="search-bar">
@@ -351,6 +472,9 @@ const TaskListPage = () => {
                   onEdit={handleEditTask}
                   onCopy={handleCopyTask}
                   isFuture={isFuture}
+                  selectionMode={selectionMode}
+                  isSelected={selectedTasks.has(task.id)}
+                  onToggleSelect={toggleTaskSelection}
                 />
               );
             })}
