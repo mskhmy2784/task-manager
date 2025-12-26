@@ -2,7 +2,7 @@
 
 React + Google Sheets API を使用した PWA 対応のタスク管理アプリケーション
 
-![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## ✨ 特徴
@@ -197,6 +197,11 @@ id	name	color	createdAt
 MIT License
 
 ## 📜 更新履歴
+
+### v1.0.5 (2025-12-27)
+- 🔧 IDベースの行検索に変更（インデックスずれによるデータ破損を防止）
+- 🔧 認証エラー（トークン期限切れ・401/403）の自動検知・ログアウト処理を追加
+- 🔧 複数行削除時の最適化（後ろから削除してインデックスずれを防止）
 
 ### v1.0.4 (2024-12-26)
 - ルーティン削除時に関連ログも削除するように修正
