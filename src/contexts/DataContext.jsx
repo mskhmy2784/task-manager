@@ -3,17 +3,19 @@ import { useAuth } from './AuthContext';
 import {
   getSheetData,
   appendRow,
-  updateRow,
-  deleteRow,
+  updateRowById,
+  deleteRowById,
+  deleteRowsByIds,
   SHEETS,
   generateId,
-  formatDateTime
+  formatDateTime,
+  AuthenticationError
 } from '../services/googleSheets';
 
 const DataContext = createContext(null);
 
 export const DataProvider = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, signOut } = useAuth();
   
   // Data state
   const [tasks, setTasks] = useState([]);
@@ -26,6 +28,16 @@ export const DataProvider = ({ children }) => {
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Handle authentication errors
+  const handleAuthError = useCallback((err) => {
+    if (err instanceof AuthenticationError) {
+      console.error('Authentication error:', err.message);
+      signOut();
+      return true;
+    }
+    return false;
+  }, [signOut]);
 
   // Fetch all data
   const fetchAllData = useCallback(async () => {
@@ -58,12 +70,13 @@ export const DataProvider = ({ children }) => {
       setSubCategories(subCategoriesData.filter(c => c.name && c.name.trim() !== ''));
       setTags(tagsData.filter(t => t.name && t.name.trim() !== ''));
     } catch (err) {
+      if (handleAuthError(err)) return;
       setError(err.message);
       console.error('Failed to fetch data:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, handleAuthError]);
 
   // Fetch data when authenticated
   useEffect(() => {
@@ -83,33 +96,48 @@ export const DataProvider = ({ children }) => {
       completedAt: ''
     };
     
-    await appendRow(SHEETS.TASKS, newTask);
-    setTasks(prev => [...prev, newTask]);
-    return newTask;
+    try {
+      await appendRow(SHEETS.TASKS, newTask);
+      setTasks(prev => [...prev, newTask]);
+      return newTask;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const updateTask = async (taskId, updates) => {
-    const index = tasks.findIndex(t => t.id === taskId);
-    if (index === -1) throw new Error('Task not found');
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) throw new Error('Task not found');
     
-    const updatedTask = { ...tasks[index], ...updates };
+    const updatedTask = { ...task, ...updates };
     
     // If marking as done, set completedAt
-    if (updates.status === 'done' && tasks[index].status !== 'done') {
+    if (updates.status === 'done' && task.status !== 'done') {
       updatedTask.completedAt = formatDateTime(new Date());
     }
     
-    await updateRow(SHEETS.TASKS, index, updatedTask);
-    setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-    return updatedTask;
+    try {
+      await updateRowById(SHEETS.TASKS, taskId, updatedTask);
+      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+      return updatedTask;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const deleteTask = async (taskId) => {
-    const index = tasks.findIndex(t => t.id === taskId);
-    if (index === -1) throw new Error('Task not found');
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) throw new Error('Task not found');
     
-    await deleteRow(SHEETS.TASKS, index);
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    try {
+      await deleteRowById(SHEETS.TASKS, taskId);
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   // === Routine Operations ===
@@ -122,39 +150,54 @@ export const DataProvider = ({ children }) => {
       createdAt: formatDateTime(new Date())
     };
     
-    await appendRow(SHEETS.ROUTINES, newRoutine);
-    setRoutines(prev => [...prev, newRoutine]);
-    return newRoutine;
+    try {
+      await appendRow(SHEETS.ROUTINES, newRoutine);
+      setRoutines(prev => [...prev, newRoutine]);
+      return newRoutine;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const updateRoutine = async (routineId, updates) => {
-    const index = routines.findIndex(r => r.id === routineId);
-    if (index === -1) throw new Error('Routine not found');
+    const routine = routines.find(r => r.id === routineId);
+    if (!routine) throw new Error('Routine not found');
     
-    const updatedRoutine = { ...routines[index], ...updates };
-    await updateRow(SHEETS.ROUTINES, index, updatedRoutine);
-    setRoutines(prev => prev.map(r => r.id === routineId ? updatedRoutine : r));
-    return updatedRoutine;
+    const updatedRoutine = { ...routine, ...updates };
+    
+    try {
+      await updateRowById(SHEETS.ROUTINES, routineId, updatedRoutine);
+      setRoutines(prev => prev.map(r => r.id === routineId ? updatedRoutine : r));
+      return updatedRoutine;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const deleteRoutine = async (routineId) => {
-    const index = routines.findIndex(r => r.id === routineId);
-    if (index === -1) throw new Error('Routine not found');
+    const routine = routines.find(r => r.id === routineId);
+    if (!routine) throw new Error('Routine not found');
     
-    // Delete related routine logs first (from back to front to avoid index shift)
-    const relatedLogIndices = routineLogs
-      .map((log, idx) => log.routineId === routineId ? idx : -1)
-      .filter(idx => idx !== -1)
-      .reverse(); // Delete from back to front
-    
-    for (const logIndex of relatedLogIndices) {
-      await deleteRow(SHEETS.ROUTINE_LOGS, logIndex);
+    try {
+      // Delete related routine logs first
+      const relatedLogIds = routineLogs
+        .filter(log => log.routineId === routineId)
+        .map(log => log.id);
+      
+      if (relatedLogIds.length > 0) {
+        await deleteRowsByIds(SHEETS.ROUTINE_LOGS, relatedLogIds);
+      }
+      setRoutineLogs(prev => prev.filter(log => log.routineId !== routineId));
+      
+      // Then delete the routine itself
+      await deleteRowById(SHEETS.ROUTINES, routineId);
+      setRoutines(prev => prev.filter(r => r.id !== routineId));
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
     }
-    setRoutineLogs(prev => prev.filter(log => log.routineId !== routineId));
-    
-    // Then delete the routine itself
-    await deleteRow(SHEETS.ROUTINES, index);
-    setRoutines(prev => prev.filter(r => r.id !== routineId));
   };
 
   // === Routine Log Operations ===
@@ -166,23 +209,33 @@ export const DataProvider = ({ children }) => {
       completedAt: logData.status === 'done' ? formatDateTime(new Date()) : ''
     };
     
-    await appendRow(SHEETS.ROUTINE_LOGS, newLog);
-    setRoutineLogs(prev => [...prev, newLog]);
-    return newLog;
+    try {
+      await appendRow(SHEETS.ROUTINE_LOGS, newLog);
+      setRoutineLogs(prev => [...prev, newLog]);
+      return newLog;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const updateRoutineLog = async (logId, updates) => {
-    const index = routineLogs.findIndex(l => l.id === logId);
-    if (index === -1) throw new Error('Log not found');
+    const log = routineLogs.find(l => l.id === logId);
+    if (!log) throw new Error('Log not found');
     
-    const updatedLog = { ...routineLogs[index], ...updates };
-    if (updates.status === 'done' && routineLogs[index].status !== 'done') {
+    const updatedLog = { ...log, ...updates };
+    if (updates.status === 'done' && log.status !== 'done') {
       updatedLog.completedAt = formatDateTime(new Date());
     }
     
-    await updateRow(SHEETS.ROUTINE_LOGS, index, updatedLog);
-    setRoutineLogs(prev => prev.map(l => l.id === logId ? updatedLog : l));
-    return updatedLog;
+    try {
+      await updateRowById(SHEETS.ROUTINE_LOGS, logId, updatedLog);
+      setRoutineLogs(prev => prev.map(l => l.id === logId ? updatedLog : l));
+      return updatedLog;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   // === Tag Operations ===
@@ -195,41 +248,57 @@ export const DataProvider = ({ children }) => {
       createdAt: formatDateTime(new Date())
     };
     
-    await appendRow(SHEETS.TAGS, newTag);
-    setTags(prev => [...prev, newTag]);
-    return newTag;
+    try {
+      await appendRow(SHEETS.TAGS, newTag);
+      setTags(prev => [...prev, newTag]);
+      return newTag;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const updateTag = async (tagId, updates) => {
-    const index = tags.findIndex(t => t.id === tagId);
-    if (index === -1) throw new Error('Tag not found');
+    const tag = tags.find(t => t.id === tagId);
+    if (!tag) throw new Error('Tag not found');
     
-    const updatedTag = { ...tags[index], ...updates };
-    await updateRow(SHEETS.TAGS, index, updatedTag);
-    setTags(prev => prev.map(t => t.id === tagId ? updatedTag : t));
-    return updatedTag;
+    const updatedTag = { ...tag, ...updates };
+    
+    try {
+      await updateRowById(SHEETS.TAGS, tagId, updatedTag);
+      setTags(prev => prev.map(t => t.id === tagId ? updatedTag : t));
+      return updatedTag;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const deleteTag = async (tagId) => {
-    const index = tags.findIndex(t => t.id === tagId);
-    if (index === -1) throw new Error('Tag not found');
+    const tag = tags.find(t => t.id === tagId);
+    if (!tag) throw new Error('Tag not found');
     
-    // Remove tag from all tasks
-    const tasksWithTag = tasks.filter(t => t.tags?.includes(tagId));
-    for (const task of tasksWithTag) {
-      const newTags = task.tags.split(',').filter(id => id !== tagId).join(',');
-      await updateTask(task.id, { tags: newTags });
+    try {
+      // Remove tag from all tasks
+      const tasksWithTag = tasks.filter(t => t.tags?.includes(tagId));
+      for (const task of tasksWithTag) {
+        const newTags = task.tags.split(',').filter(id => id !== tagId).join(',');
+        await updateTask(task.id, { tags: newTags });
+      }
+      
+      // Remove tag from all routines
+      const routinesWithTag = routines.filter(r => r.tags?.includes(tagId));
+      for (const routine of routinesWithTag) {
+        const newTags = routine.tags.split(',').filter(id => id !== tagId).join(',');
+        await updateRoutine(routine.id, { tags: newTags });
+      }
+      
+      await deleteRowById(SHEETS.TAGS, tagId);
+      setTags(prev => prev.filter(t => t.id !== tagId));
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
     }
-    
-    // Remove tag from all routines
-    const routinesWithTag = routines.filter(r => r.tags?.includes(tagId));
-    for (const routine of routinesWithTag) {
-      const newTags = routine.tags.split(',').filter(id => id !== tagId).join(',');
-      await updateRoutine(routine.id, { tags: newTags });
-    }
-    
-    await deleteRow(SHEETS.TAGS, index);
-    setTags(prev => prev.filter(t => t.id !== tagId));
   };
 
   // Find or create tag by name
@@ -248,9 +317,14 @@ export const DataProvider = ({ children }) => {
       sortOrder: mainCategories.length + 1
     };
     
-    await appendRow(SHEETS.MAIN_CATEGORIES, newCategory);
-    setMainCategories(prev => [...prev, newCategory]);
-    return newCategory;
+    try {
+      await appendRow(SHEETS.MAIN_CATEGORIES, newCategory);
+      setMainCategories(prev => [...prev, newCategory]);
+      return newCategory;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const addSubCategory = async (categoryData) => {
@@ -260,45 +334,72 @@ export const DataProvider = ({ children }) => {
       sortOrder: subCategories.filter(s => s.mainCategoryId === categoryData.mainCategoryId).length + 1
     };
     
-    await appendRow(SHEETS.SUB_CATEGORIES, newCategory);
-    setSubCategories(prev => [...prev, newCategory]);
-    return newCategory;
+    try {
+      await appendRow(SHEETS.SUB_CATEGORIES, newCategory);
+      setSubCategories(prev => [...prev, newCategory]);
+      return newCategory;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const updateMainCategory = async (categoryId, updates) => {
-    const index = mainCategories.findIndex(c => c.id === categoryId);
-    if (index === -1) throw new Error('Category not found');
+    const category = mainCategories.find(c => c.id === categoryId);
+    if (!category) throw new Error('Category not found');
     
-    const updatedCategory = { ...mainCategories[index], ...updates };
-    await updateRow(SHEETS.MAIN_CATEGORIES, index, updatedCategory);
-    setMainCategories(prev => prev.map(c => c.id === categoryId ? updatedCategory : c));
-    return updatedCategory;
+    const updatedCategory = { ...category, ...updates };
+    
+    try {
+      await updateRowById(SHEETS.MAIN_CATEGORIES, categoryId, updatedCategory);
+      setMainCategories(prev => prev.map(c => c.id === categoryId ? updatedCategory : c));
+      return updatedCategory;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const deleteMainCategory = async (categoryId) => {
-    const index = mainCategories.findIndex(c => c.id === categoryId);
-    if (index === -1) throw new Error('Category not found');
+    const category = mainCategories.find(c => c.id === categoryId);
+    if (!category) throw new Error('Category not found');
     
-    await deleteRow(SHEETS.MAIN_CATEGORIES, index);
-    setMainCategories(prev => prev.filter(c => c.id !== categoryId));
+    try {
+      await deleteRowById(SHEETS.MAIN_CATEGORIES, categoryId);
+      setMainCategories(prev => prev.filter(c => c.id !== categoryId));
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const updateSubCategory = async (categoryId, updates) => {
-    const index = subCategories.findIndex(c => c.id === categoryId);
-    if (index === -1) throw new Error('SubCategory not found');
+    const category = subCategories.find(c => c.id === categoryId);
+    if (!category) throw new Error('SubCategory not found');
     
-    const updatedCategory = { ...subCategories[index], ...updates };
-    await updateRow(SHEETS.SUB_CATEGORIES, index, updatedCategory);
-    setSubCategories(prev => prev.map(c => c.id === categoryId ? updatedCategory : c));
-    return updatedCategory;
+    const updatedCategory = { ...category, ...updates };
+    
+    try {
+      await updateRowById(SHEETS.SUB_CATEGORIES, categoryId, updatedCategory);
+      setSubCategories(prev => prev.map(c => c.id === categoryId ? updatedCategory : c));
+      return updatedCategory;
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   const deleteSubCategory = async (categoryId) => {
-    const index = subCategories.findIndex(c => c.id === categoryId);
-    if (index === -1) throw new Error('SubCategory not found');
+    const category = subCategories.find(c => c.id === categoryId);
+    if (!category) throw new Error('SubCategory not found');
     
-    await deleteRow(SHEETS.SUB_CATEGORIES, index);
-    setSubCategories(prev => prev.filter(c => c.id !== categoryId));
+    try {
+      await deleteRowById(SHEETS.SUB_CATEGORIES, categoryId);
+      setSubCategories(prev => prev.filter(c => c.id !== categoryId));
+    } catch (err) {
+      if (handleAuthError(err)) throw err;
+      throw err;
+    }
   };
 
   // === Helper Functions ===
