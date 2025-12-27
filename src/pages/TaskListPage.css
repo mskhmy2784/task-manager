@@ -45,15 +45,12 @@
   font-weight: 700;
   color: #1f2937;
   margin: 0;
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .header-buttons {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
 }
 
 /* 選択ボタン */
@@ -94,14 +91,13 @@
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease;
-  white-space: nowrap;
 }
 
 .add-task-btn:hover {
   background: #3b7dc4;
 }
 
-/* 2行目: 検索バー（フル幅） */
+/* 2行目: 検索バー */
 .search-bar {
   display: flex;
   align-items: center;
@@ -110,7 +106,6 @@
   background: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  width: 100%;
 }
 
 .search-bar svg {
@@ -274,6 +269,48 @@
 .bulk-delete-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* タスクアイテムラッパー（選択モード用） */
+.task-item-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.task-item-wrapper.select-mode {
+  gap: 12px;
+}
+
+.task-item-wrapper .task-item-card {
+  flex: 1;
+}
+
+.task-select-checkbox {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  transition: all 0.2s ease;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.task-select-checkbox:hover {
+  border-color: #3b82f6;
+}
+
+.task-select-checkbox.checked {
+  background: #3b82f6;
+  border-color: #3b82f6;
 }
 
 /* Controls Section */

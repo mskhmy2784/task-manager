@@ -1,59 +1,40 @@
 import { useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { format } from 'date-fns';
 import {
   Check,
-  ChevronDown,
   MoreVertical,
   Edit,
-  Copy,
   Trash2,
-  LinkIcon,
-  ExternalLink
+  Copy,
+  Link as LinkIcon,
+  ExternalLink,
+  ChevronDown
 } from 'lucide-react';
 import './TaskItem.css';
 
-const TaskItem = ({ 
-  task, 
-  onEdit, 
-  onCopy, 
-  isFuture,
-  selectMode = false,
-  isSelected = false,
-  onToggleSelect
-}) => {
-  const { 
-    mainCategories, 
-    subCategories, 
-    tags,
-    updateTask,
-    deleteTask 
-  } = useData();
-  
+const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
+  const { updateTask, deleteTask, getMainCategory, getSubCategory, tags } = useData();
   const [showMenu, setShowMenu] = useState(false);
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showLinks, setShowLinks] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const isOverdue = task.dueDate && task.dueDate < todayStr && task.status !== 'done';
-
-  const mainCategory = mainCategories.find(c => c.id === task.mainCategoryId);
-  const subCategory = subCategories.find(c => c.id === task.subCategoryId);
-
-  const taskTags = task.tags 
-    ? task.tags.split(',').map(tagId => tags.find(t => t.id === tagId)).filter(Boolean)
-    : [];
-
-  const taskLinks = task.links
-    ? task.links.split('\n')
-        .filter(l => l.trim())
-        .map(link => {
-          const parts = link.split('|');
-          return { name: parts[0]?.trim() || '', url: parts[1]?.trim() || parts[0]?.trim() || '' };
-        })
-        .filter(link => link.url && link.url !== '[]' && link.url !== '()') // 空や無効なリンクを除外
-    : [];
+  const mainCategory = getMainCategory(task.mainCategoryId);
+  const subCategory = getSubCategory(task.subCategoryId);
+  const taskTags = task.tags ? task.tags.split(',').filter(Boolean).map(id => tags.find(t => t.id === id)).filter(Boolean) : [];
+  
+  // リンクのパース + 空リンクのフィルタリング
+  let taskLinks = [];
+  if (task.links) {
+    try {
+      const parsed = JSON.parse(task.links);
+      taskLinks = Array.isArray(parsed) 
+        ? parsed.filter(link => link && link.url && link.url.trim() !== '' && link.url !== '[]')
+        : [];
+    } catch {
+      taskLinks = [];
+    }
+  }
 
   const priorityLabels = {
     veryHigh: '最高',
@@ -76,10 +57,8 @@ const TaskItem = ({
     { value: 'onHold', label: '保留' }
   ];
 
-  const handleToggleComplete = async (e) => {
-    e.stopPropagation();
+  const handleToggleComplete = async () => {
     if (isUpdating) return;
-    
     setIsUpdating(true);
     try {
       const newStatus = task.status === 'done' ? 'todo' : 'done';
@@ -92,13 +71,16 @@ const TaskItem = ({
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (isUpdating) return;
-    setShowStatusMenu(false);
+    if (isUpdating || newStatus === task.status) {
+      setShowStatusMenu(false);
+      return;
+    }
     setIsUpdating(true);
+    setShowStatusMenu(false);
     try {
       await updateTask(task.id, { status: newStatus });
     } catch (error) {
-      console.error('Failed to update task:', error);
+      console.error('Failed to update task status:', error);
     } finally {
       setIsUpdating(false);
     }
@@ -115,80 +97,52 @@ const TaskItem = ({
     setShowMenu(false);
   };
 
-  // 選択モード時のクリック処理
-  const handleCardClick = () => {
-    if (selectMode && onToggleSelect) {
-      onToggleSelect();
-    }
-  };
+  const isOverdue = task.dueDate && task.dueDate < new Date().toISOString().split('T')[0] && task.status !== 'done';
 
   return (
-    <div 
-      className={`task-item-card ${task.status === 'done' ? 'done' : ''} ${isOverdue ? 'overdue' : ''} ${isFuture ? 'future' : ''} ${selectMode ? 'select-mode' : ''} ${isSelected ? 'selected' : ''}`}
-      onClick={selectMode ? handleCardClick : undefined}
-    >
+    <div className={`task-item-card ${task.status} ${isOverdue ? 'overdue' : ''} ${isFuture ? 'future' : ''}`}>
       <div className="task-main">
-        {/* 選択モード時はチェックボックス、通常時は完了チェック */}
-        {selectMode ? (
-          <button
-            className={`select-checkbox ${isSelected ? 'checked' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSelect && onToggleSelect();
-            }}
-          >
-            {isSelected && <Check size={14} />}
-          </button>
-        ) : (
-          <button
-            className={`checkbox ${task.status === 'done' ? 'checked' : ''}`}
-            onClick={handleToggleComplete}
-            disabled={isUpdating}
-          >
-            {task.status === 'done' && <Check size={14} />}
-          </button>
-        )}
+        <button
+          className={`checkbox ${task.status === 'done' ? 'checked' : ''}`}
+          onClick={handleToggleComplete}
+          disabled={isUpdating}
+        >
+          {task.status === 'done' && <Check size={14} />}
+        </button>
 
-        <div className="task-content" onClick={(e) => {
-          if (!selectMode) {
-            e.stopPropagation();
-            onEdit(task);
-          }
-        }}>
+        <div className="task-content" onClick={() => onEdit(task)}>
           <div className="task-title-row">
             <span className="task-title">{task.title}</span>
             <div className="task-badges">
               <span className={`priority-badge ${task.priority}`}>
                 {priorityLabels[task.priority]}
               </span>
-              {!selectMode && (
-                <div className="status-dropdown-wrapper" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className={`status-badge ${task.status}`}
-                    onClick={() => setShowStatusMenu(!showStatusMenu)}
-                    disabled={isUpdating}
-                  >
-                    {statusLabels[task.status] || '未着手'}
-                    <ChevronDown size={12} />
-                  </button>
-                  {showStatusMenu && (
-                    <>
-                      <div className="status-backdrop" onClick={() => setShowStatusMenu(false)} />
-                      <div className="status-dropdown">
-                        {statusOptions.map(option => (
-                          <button
-                            key={option.value}
-                            className={`status-option ${option.value} ${task.status === option.value ? 'active' : ''}`}
-                            onClick={() => handleStatusChange(option.value)}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+              <div className="status-dropdown-wrapper" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className={`status-badge ${task.status}`}
+                  onClick={() => setShowStatusMenu(!showStatusMenu)}
+                  disabled={isUpdating}
+                >
+                  {statusLabels[task.status] || '未着手'}
+                  <ChevronDown size={12} />
+                </button>
+                {showStatusMenu && (
+                  <>
+                    <div className="status-backdrop" onClick={() => setShowStatusMenu(false)} />
+                    <div className="status-dropdown">
+                      {statusOptions.map(option => (
+                        <button
+                          key={option.value}
+                          className={`status-option ${option.value} ${task.status === option.value ? 'active' : ''}`}
+                          onClick={() => handleStatusChange(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -196,7 +150,7 @@ const TaskItem = ({
             {mainCategory && (
               <span className="category-label" style={{ color: mainCategory.color }}>
                 {mainCategory.name}
-                {subCategory && ` / ${subCategory.name}`}
+                {subCategory && ` > ${subCategory.name}`}
               </span>
             )}
             {task.startDate && (
@@ -231,61 +185,52 @@ const TaskItem = ({
           )}
         </div>
 
-        {!selectMode && (
-          <div className="task-actions" onClick={(e) => e.stopPropagation()}>
-            {taskLinks.length > 0 && (
-              <button
-                className="action-btn link-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowLinks(!showLinks);
-                }}
-                title="リンク"
-              >
-                <LinkIcon size={16} />
-                <span className="link-count">{taskLinks.length}</span>
-              </button>
+        <div className="task-actions">
+          {taskLinks.length > 0 && (
+            <button
+              className="action-btn link-btn"
+              onClick={() => setShowLinks(!showLinks)}
+              title="リンク"
+            >
+              <LinkIcon size={16} />
+              <span className="link-count">{taskLinks.length}</span>
+            </button>
+          )}
+
+          <div className="menu-wrapper">
+            <button
+              className="action-btn menu-btn"
+              onClick={() => setShowMenu(!showMenu)}
+            >
+              <MoreVertical size={16} />
+            </button>
+
+            {showMenu && (
+              <>
+                <div className="menu-backdrop" onClick={() => setShowMenu(false)} />
+                <div className="dropdown-menu">
+                  <button onClick={() => { onEdit(task); setShowMenu(false); }}>
+                    <Edit size={14} />
+                    編集
+                  </button>
+                  {onCopy && (
+                    <button onClick={() => { onCopy(task); setShowMenu(false); }}>
+                      <Copy size={14} />
+                      コピー
+                    </button>
+                  )}
+                  <button onClick={handleDelete} className="delete">
+                    <Trash2 size={14} />
+                    削除
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="menu-wrapper" onClick={(e) => e.stopPropagation()}>
-              <button
-                className="action-btn menu-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  setShowMenu(!showMenu);
-                }}
-              >
-                <MoreVertical size={16} />
-              </button>
-
-              {showMenu && (
-                <>
-                  <div className="menu-backdrop" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-                  <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={(e) => { e.stopPropagation(); onEdit(task); setShowMenu(false); }}>
-                      <Edit size={14} />
-                      編集
-                    </button>
-                    {onCopy && (
-                      <button onClick={(e) => { e.stopPropagation(); onCopy(task); setShowMenu(false); }}>
-                        <Copy size={14} />
-                        コピー
-                      </button>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} className="delete">
-                      <Trash2 size={14} />
-                      削除
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {showLinks && taskLinks.length > 0 && !selectMode && (
+      {showLinks && taskLinks.length > 0 && (
         <div className="task-links">
           {taskLinks.map((link, index) => (
             <a
@@ -294,10 +239,9 @@ const TaskItem = ({
               target="_blank"
               rel="noopener noreferrer"
               className="link-item"
-              onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink size={14} />
-              {link.name}
+              {link.name || link.url}
             </a>
           ))}
         </div>

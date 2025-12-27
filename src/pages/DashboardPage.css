@@ -408,23 +408,20 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: 10;
 }
 
-/* ========================================
-   ステータスドロップダウン
-   v1.0.8 修正: 常に上に表示
-   ======================================== */
+/* v1.0.8 修正: ステータスドロップダウンを常に上に表示 */
 .status-dropdown {
   position: absolute;
-  bottom: 100%;      /* 常に上に表示 */
-  right: 0;          /* 右揃え */
+  bottom: 100%;
+  right: 0;
   margin-bottom: 4px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 110;
+  z-index: 20;
   min-width: 100px;
   overflow: hidden;
 }

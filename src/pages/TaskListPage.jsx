@@ -40,7 +40,7 @@ const TaskListPage = () => {
   const [sortBy, setSortBy] = useState('dueDate');
   const [sortOrder, setSortOrder] = useState('asc');
   
-  // 選択モード関連
+  // 選択モード
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
@@ -209,13 +209,13 @@ const TaskListPage = () => {
     }
   };
 
-  // タスク編集時
+  // タスク編集
   const handleEditTask = (task) => {
     setEditingTask(task);
     setShowModal(true);
   };
 
-  // タスクコピー時
+  // タスクコピー
   const handleCopyTask = (task) => {
     const copiedTask = {
       ...task,
@@ -265,7 +265,7 @@ const TaskListPage = () => {
           </div>
         </div>
 
-        {/* 2行目: 検索バー（フル幅） */}
+        {/* 2行目: 検索バー */}
         <div className="search-bar">
           <Search size={18} />
           <input
@@ -446,16 +446,22 @@ const TaskListPage = () => {
               const startDate = task.startDate || task.dueDate;
               const isFuture = startDate && startDate > todayStr;
               return (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  onEdit={handleEditTask}
-                  onCopy={handleCopyTask}
-                  isFuture={isFuture}
-                  selectMode={selectMode}
-                  isSelected={selectedTasks.includes(task.id)}
-                  onToggleSelect={() => toggleTaskSelection(task.id)}
-                />
+                <div key={task.id} className={`task-item-wrapper ${selectMode ? 'select-mode' : ''}`}>
+                  {selectMode && (
+                    <button
+                      className={`task-select-checkbox ${selectedTasks.includes(task.id) ? 'checked' : ''}`}
+                      onClick={() => toggleTaskSelection(task.id)}
+                    >
+                      {selectedTasks.includes(task.id) && <span>✓</span>}
+                    </button>
+                  )}
+                  <TaskItem
+                    task={task}
+                    onEdit={handleEditTask}
+                    onCopy={handleCopyTask}
+                    isFuture={isFuture}
+                  />
+                </div>
               );
             })}
           </div>
