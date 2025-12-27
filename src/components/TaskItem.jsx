@@ -15,6 +15,7 @@ import './TaskItem.css';
 const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
   const { updateTask, deleteTask, getMainCategory, getSubCategory, tags } = useData();
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [showLinks, setShowLinks] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -95,6 +96,21 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
       }
     }
     setShowMenu(false);
+  };
+
+  // 3点メニューボタンクリック（ルーティンと同じ方式）
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+    if (showMenu) {
+      setShowMenu(false);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 120
+      });
+      setShowMenu(true);
+    }
   };
 
   const isOverdue = task.dueDate && task.dueDate < new Date().toISOString().split('T')[0] && task.status !== 'done';
@@ -185,7 +201,7 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
           )}
         </div>
 
-        <div className="task-actions" onClick={(e) => e.stopPropagation()}>
+        <div className="task-actions">
           {taskLinks.length > 0 && (
             <button
               className="action-btn link-btn"
@@ -203,29 +219,26 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
           <div className="menu-wrapper">
             <button
               className="action-btn menu-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMenu(!showMenu);
-              }}
+              onClick={handleMenuClick}
             >
               <MoreVertical size={16} />
             </button>
 
             {showMenu && (
               <>
-                <div className="menu-backdrop" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-                <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={(e) => { e.stopPropagation(); onEdit(task); setShowMenu(false); }}>
+                <div className="menu-backdrop" onClick={() => setShowMenu(false)} />
+                <div className="dropdown-menu" style={{ top: menuPosition.top, left: menuPosition.left }}>
+                  <button onClick={() => { onEdit(task); setShowMenu(false); }}>
                     <Edit size={14} />
                     編集
                   </button>
                   {onCopy && (
-                    <button onClick={(e) => { e.stopPropagation(); onCopy(task); setShowMenu(false); }}>
+                    <button onClick={() => { onCopy(task); setShowMenu(false); }}>
                       <Copy size={14} />
                       コピー
                     </button>
                   )}
-                  <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} className="delete">
+                  <button onClick={handleDelete} className="delete">
                     <Trash2 size={14} />
                     削除
                   </button>

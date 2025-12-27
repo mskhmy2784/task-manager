@@ -324,20 +324,18 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: 999;
 }
 
 .dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
+  position: fixed;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 110;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
   min-width: 120px;
-  overflow: hidden;
+  padding: 4px;
 }
 
 .dropdown-menu button {
@@ -345,13 +343,14 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 12px;
   background: none;
   border: none;
   text-align: left;
   cursor: pointer;
   font-size: 0.875rem;
   color: #374151;
+  border-radius: 6px;
   transition: background 0.2s ease;
 }
 
@@ -364,7 +363,7 @@
 }
 
 .dropdown-menu button.delete:hover {
-  background: #fee2e2;
+  background: #fef2f2;
 }
 
 /* Task Links */
