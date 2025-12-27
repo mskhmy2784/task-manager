@@ -78,16 +78,29 @@ const DashboardPage = () => {
     });
   }, [tasks, todayStr]);
 
-  // 期限切れタスク: 期限日 < 今日 AND status が done 以外（onHold も含む）
-  // v1.0.8修正: incompleteTasks からではなく tasks から直接フィルタリング
+  // 期限切れタスク: 期限日時を過ぎている AND status が done 以外（onHold も含む）
+  // v1.0.8修正: 時間も考慮して判定
   const overdueTasks = useMemo(() => {
-    return tasks.filter(t => 
-      t.title && t.title.trim() !== '' &&
-      t.dueDate && 
-      t.dueDate < todayStr && 
-      t.status !== 'done'
-    );
-  }, [tasks, todayStr]);
+    const now = new Date();
+    
+    return tasks.filter(t => {
+      if (!t.title || t.title.trim() === '') return false;
+      if (!t.dueDate) return false;
+      if (t.status === 'done') return false;
+      
+      // 期限日時を構築
+      let dueDateTime;
+      if (t.dueTime) {
+        // 時間が設定されている場合: その時刻を期限とする
+        dueDateTime = new Date(`${t.dueDate}T${t.dueTime}:00`);
+      } else {
+        // 時間が設定されていない場合: 当日の23:59:59を期限とする
+        dueDateTime = new Date(`${t.dueDate}T23:59:59`);
+      }
+      
+      return now > dueDateTime;
+    });
+  }, [tasks]);
 
   // 保留タスク: status が onHold
   const onHoldTasks = useMemo(() => {

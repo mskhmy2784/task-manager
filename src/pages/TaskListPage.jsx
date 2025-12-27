@@ -93,9 +93,20 @@ const TaskListPage = () => {
     if (specialFilter === 'incomplete') {
       result = result.filter(task => task.status !== 'done' && task.status !== 'onHold');
     } else if (specialFilter === 'overdue') {
-      result = result.filter(task => 
-        task.dueDate && task.dueDate < todayStr && task.status !== 'done'
-      );
+      // 期限超過: 期限日時を過ぎている AND 未完了（時間を考慮）
+      const now = new Date();
+      result = result.filter(task => {
+        if (!task.dueDate || task.status === 'done') return false;
+        
+        let dueDateTime;
+        if (task.dueTime) {
+          dueDateTime = new Date(`${task.dueDate}T${task.dueTime}:00`);
+        } else {
+          dueDateTime = new Date(`${task.dueDate}T23:59:59`);
+        }
+        
+        return now > dueDateTime;
+      });
     } else if (specialFilter === 'onHold') {
       result = result.filter(task => task.status === 'onHold');
     }

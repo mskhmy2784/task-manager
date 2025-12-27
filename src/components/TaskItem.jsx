@@ -113,7 +113,20 @@ const TaskItem = ({ task, onEdit, onCopy, isFuture = false }) => {
     }
   };
 
-  const isOverdue = task.dueDate && task.dueDate < new Date().toISOString().split('T')[0] && task.status !== 'done';
+  // 期限超過判定（時間を考慮）
+  const isOverdue = (() => {
+    if (!task.dueDate || task.status === 'done') return false;
+    
+    const now = new Date();
+    let dueDateTime;
+    if (task.dueTime) {
+      dueDateTime = new Date(`${task.dueDate}T${task.dueTime}:00`);
+    } else {
+      dueDateTime = new Date(`${task.dueDate}T23:59:59`);
+    }
+    
+    return now > dueDateTime;
+  })();
 
   return (
     <div className={`task-item-card ${task.status} ${isOverdue ? 'overdue' : ''} ${isFuture ? 'future' : ''}`}>
