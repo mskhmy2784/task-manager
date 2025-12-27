@@ -1,415 +1,502 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import {
-  getSheetData,
+  getRows,
   appendRow,
   updateRowById,
   deleteRowById,
   deleteRowsByIds,
-  SHEETS,
   generateId,
-  formatDateTime,
+  SHEETS,
   AuthenticationError
 } from '../services/googleSheets';
 
 const DataContext = createContext(null);
 
+export const useData = () => {
+  const context = useContext(DataContext);
+  if (!context) {
+    throw new Error('useData must be used within a DataProvider');
+  }
+  return context;
+};
+
 export const DataProvider = ({ children }) => {
-  const { isAuthenticated, signOut } = useAuth();
-  
-  // Data state
+  const { signOut } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [routines, setRoutines] = useState([]);
   const [routineLogs, setRoutineLogs] = useState([]);
   const [mainCategories, setMainCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [tags, setTags] = useState([]);
-  
-  // Loading state
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Handle authentication errors
-  const handleAuthError = useCallback((err) => {
-    if (err instanceof AuthenticationError) {
-      console.error('Authentication error:', err.message);
+  const handleAuthError = useCallback((error) => {
+    if (error instanceof AuthenticationError) {
+      console.error('Authentication error:', error.message);
       signOut();
       return true;
     }
     return false;
   }, [signOut]);
 
-  // Fetch all data
-  const fetchAllData = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
+  // Load all data
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
     try {
-      const [
-        tasksData,
-        routinesData,
-        routineLogsData,
-        mainCategoriesData,
-        subCategoriesData,
-        tagsData
-      ] = await Promise.all([
-        getSheetData(SHEETS.TASKS),
-        getSheetData(SHEETS.ROUTINES),
-        getSheetData(SHEETS.ROUTINE_LOGS),
-        getSheetData(SHEETS.MAIN_CATEGORIES),
-        getSheetData(SHEETS.SUB_CATEGORIES),
-        getSheetData(SHEETS.TAGS)
+      const [tasksData, routinesData, routineLogsData, mainCatData, subCatData, tagsData] = await Promise.all([
+        getRows(SHEETS.TASKS),
+        getRows(SHEETS.ROUTINES),
+        getRows(SHEETS.ROUTINE_LOGS),
+        getRows(SHEETS.MAIN_CATEGORIES),
+        getRows(SHEETS.SUB_CATEGORIES),
+        getRows(SHEETS.TAGS)
       ]);
       
       setTasks(tasksData.filter(t => t.title && t.title.trim() !== ''));
       setRoutines(routinesData.filter(r => r.title && r.title.trim() !== ''));
-      setRoutineLogs(routineLogsData);
-      setMainCategories(mainCategoriesData.filter(c => c.name && c.name.trim() !== ''));
-      setSubCategories(subCategoriesData.filter(c => c.name && c.name.trim() !== ''));
+      setRoutineLogs(routineLogsData.filter(l => l.id && l.id.trim() !== ''));
+      setMainCategories(mainCatData.filter(c => c.name && c.name.trim() !== ''));
+      setSubCategories(subCatData.filter(c => c.name && c.name.trim() !== ''));
       setTags(tagsData.filter(t => t.name && t.name.trim() !== ''));
     } catch (err) {
       if (handleAuthError(err)) return;
       setError(err.message);
-      console.error('Failed to fetch data:', err);
+      console.error('Failed to load data:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, handleAuthError]);
+  }, [handleAuthError]);
 
-  // Fetch data when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchAllData();
-    }
-  }, [isAuthenticated, fetchAllData]);
+    loadData();
+  }, [loadData]);
 
-  // === Task Operations ===
-  
+  // Task operations
   const addTask = async (taskData) => {
-    const newTask = {
-      id: generateId('task'),
-      ...taskData,
-      status: taskData.status || 'todo',
-      createdAt: formatDateTime(new Date()),
-      completedAt: ''
-    };
-    
     try {
-      await appendRow(SHEETS.TASKS, newTask);
+      const id = generateId();
+      const now = new Date().toISOString();
+      const newTask = {
+        id,
+        title: taskData.title || '',
+        description: taskData.description || '',
+        mainCategoryId: taskData.mainCategoryId || '',
+        subCategoryId: taskData.subCategoryId || '',
+        priority: taskData.priority || 'medium',
+        status: taskData.status || 'todo',
+        startDate: taskData.startDate || '',
+        startTime: taskData.startTime || '',
+        dueDate: taskData.dueDate || '',
+        dueTime: taskData.dueTime || '',
+        estimatedDays: taskData.estimatedDays || '',
+        estimatedHours: taskData.estimatedHours || '',
+        period: taskData.period || '',
+        tags: taskData.tags || '',
+        links: taskData.links || '[]',
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      const rowData = [
+        newTask.id,
+        newTask.title,
+        newTask.description,
+        newTask.mainCategoryId,
+        newTask.subCategoryId,
+        newTask.priority,
+        newTask.status,
+        newTask.startDate,
+        newTask.startTime,
+        newTask.dueDate,
+        newTask.dueTime,
+        newTask.estimatedDays,
+        newTask.estimatedHours,
+        newTask.period,
+        newTask.tags,
+        newTask.links,
+        newTask.createdAt,
+        newTask.updatedAt
+      ];
+      
+      await appendRow(SHEETS.TASKS, rowData);
       setTasks(prev => [...prev, newTask]);
       return newTask;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to add task:', err);
       throw err;
     }
   };
 
   const updateTask = async (taskId, updates) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) throw new Error('Task not found');
-    
-    const updatedTask = { ...task, ...updates };
-    
-    // If marking as done, set completedAt
-    if (updates.status === 'done' && task.status !== 'done') {
-      updatedTask.completedAt = formatDateTime(new Date());
-    }
-    
     try {
-      await updateRowById(SHEETS.TASKS, taskId, updatedTask);
+      const taskIndex = tasks.findIndex(t => t.id === taskId);
+      if (taskIndex === -1) throw new Error('Task not found');
+      
+      const now = new Date().toISOString();
+      const updatedTask = { ...tasks[taskIndex], ...updates, updatedAt: now };
+      
+      const rowData = [
+        updatedTask.id,
+        updatedTask.title,
+        updatedTask.description,
+        updatedTask.mainCategoryId,
+        updatedTask.subCategoryId,
+        updatedTask.priority,
+        updatedTask.status,
+        updatedTask.startDate,
+        updatedTask.startTime,
+        updatedTask.dueDate,
+        updatedTask.dueTime,
+        updatedTask.estimatedDays,
+        updatedTask.estimatedHours,
+        updatedTask.period,
+        updatedTask.tags,
+        updatedTask.links,
+        updatedTask.createdAt,
+        updatedTask.updatedAt
+      ];
+      
+      await updateRowById(SHEETS.TASKS, taskId, rowData);
       setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
       return updatedTask;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to update task:', err);
       throw err;
     }
   };
 
   const deleteTask = async (taskId) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) throw new Error('Task not found');
-    
     try {
       await deleteRowById(SHEETS.TASKS, taskId);
       setTasks(prev => prev.filter(t => t.id !== taskId));
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to delete task:', err);
       throw err;
     }
   };
 
-  // === Routine Operations ===
-  
+  // Routine operations
   const addRoutine = async (routineData) => {
-    const newRoutine = {
-      id: generateId('routine'),
-      ...routineData,
-      isActive: 'TRUE',
-      createdAt: formatDateTime(new Date())
-    };
-    
     try {
-      await appendRow(SHEETS.ROUTINES, newRoutine);
+      const id = generateId();
+      const now = new Date().toISOString();
+      const newRoutine = {
+        id,
+        title: routineData.title || '',
+        description: routineData.description || '',
+        mainCategoryId: routineData.mainCategoryId || '',
+        subCategoryId: routineData.subCategoryId || '',
+        frequency: routineData.frequency || 'daily',
+        dayOfWeek: routineData.dayOfWeek || '',
+        dayOfMonth: routineData.dayOfMonth || '',
+        isActive: routineData.isActive || 'TRUE',
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      const rowData = [
+        newRoutine.id,
+        newRoutine.title,
+        newRoutine.description,
+        newRoutine.mainCategoryId,
+        newRoutine.subCategoryId,
+        newRoutine.frequency,
+        newRoutine.dayOfWeek,
+        newRoutine.dayOfMonth,
+        newRoutine.isActive,
+        newRoutine.createdAt,
+        newRoutine.updatedAt
+      ];
+      
+      await appendRow(SHEETS.ROUTINES, rowData);
       setRoutines(prev => [...prev, newRoutine]);
       return newRoutine;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to add routine:', err);
       throw err;
     }
   };
 
   const updateRoutine = async (routineId, updates) => {
-    const routine = routines.find(r => r.id === routineId);
-    if (!routine) throw new Error('Routine not found');
-    
-    const updatedRoutine = { ...routine, ...updates };
-    
     try {
-      await updateRowById(SHEETS.ROUTINES, routineId, updatedRoutine);
+      const routineIndex = routines.findIndex(r => r.id === routineId);
+      if (routineIndex === -1) throw new Error('Routine not found');
+      
+      const now = new Date().toISOString();
+      const updatedRoutine = { ...routines[routineIndex], ...updates, updatedAt: now };
+      
+      const rowData = [
+        updatedRoutine.id,
+        updatedRoutine.title,
+        updatedRoutine.description,
+        updatedRoutine.mainCategoryId,
+        updatedRoutine.subCategoryId,
+        updatedRoutine.frequency,
+        updatedRoutine.dayOfWeek,
+        updatedRoutine.dayOfMonth,
+        updatedRoutine.isActive,
+        updatedRoutine.createdAt,
+        updatedRoutine.updatedAt
+      ];
+      
+      await updateRowById(SHEETS.ROUTINES, routineId, rowData);
       setRoutines(prev => prev.map(r => r.id === routineId ? updatedRoutine : r));
       return updatedRoutine;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to update routine:', err);
       throw err;
     }
   };
 
   const deleteRoutine = async (routineId) => {
-    const routine = routines.find(r => r.id === routineId);
-    if (!routine) throw new Error('Routine not found');
-    
     try {
-      // Delete related routine logs first
-      const relatedLogIds = routineLogs
-        .filter(log => log.routineId === routineId)
-        .map(log => log.id);
-      
-      if (relatedLogIds.length > 0) {
-        await deleteRowsByIds(SHEETS.ROUTINE_LOGS, relatedLogIds);
+      // First, find and delete related routine logs
+      const relatedLogs = routineLogs.filter(log => log.routineId === routineId);
+      if (relatedLogs.length > 0) {
+        const logIds = relatedLogs.map(log => log.id);
+        await deleteRowsByIds(SHEETS.ROUTINE_LOGS, logIds);
+        setRoutineLogs(prev => prev.filter(log => log.routineId !== routineId));
       }
-      setRoutineLogs(prev => prev.filter(log => log.routineId !== routineId));
       
-      // Then delete the routine itself
+      // Then delete the routine
       await deleteRowById(SHEETS.ROUTINES, routineId);
       setRoutines(prev => prev.filter(r => r.id !== routineId));
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to delete routine:', err);
       throw err;
     }
   };
 
-  // === Routine Log Operations ===
-  
+  // Routine Log operations
   const addRoutineLog = async (logData) => {
-    const newLog = {
-      id: generateId('log'),
-      ...logData,
-      completedAt: logData.status === 'done' ? formatDateTime(new Date()) : ''
-    };
-    
     try {
-      await appendRow(SHEETS.ROUTINE_LOGS, newLog);
+      const id = generateId();
+      const newLog = {
+        id,
+        routineId: logData.routineId,
+        date: logData.date,
+        completed: logData.completed || 'FALSE',
+        completedAt: logData.completedAt || ''
+      };
+      
+      const rowData = [
+        newLog.id,
+        newLog.routineId,
+        newLog.date,
+        newLog.completed,
+        newLog.completedAt
+      ];
+      
+      await appendRow(SHEETS.ROUTINE_LOGS, rowData);
       setRoutineLogs(prev => [...prev, newLog]);
       return newLog;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to add routine log:', err);
       throw err;
     }
   };
 
   const updateRoutineLog = async (logId, updates) => {
-    const log = routineLogs.find(l => l.id === logId);
-    if (!log) throw new Error('Log not found');
-    
-    const updatedLog = { ...log, ...updates };
-    if (updates.status === 'done' && log.status !== 'done') {
-      updatedLog.completedAt = formatDateTime(new Date());
-    }
-    
     try {
-      await updateRowById(SHEETS.ROUTINE_LOGS, logId, updatedLog);
+      const logIndex = routineLogs.findIndex(l => l.id === logId);
+      if (logIndex === -1) throw new Error('Routine log not found');
+      
+      const updatedLog = { ...routineLogs[logIndex], ...updates };
+      
+      const rowData = [
+        updatedLog.id,
+        updatedLog.routineId,
+        updatedLog.date,
+        updatedLog.completed,
+        updatedLog.completedAt
+      ];
+      
+      await updateRowById(SHEETS.ROUTINE_LOGS, logId, rowData);
       setRoutineLogs(prev => prev.map(l => l.id === logId ? updatedLog : l));
       return updatedLog;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to update routine log:', err);
       throw err;
     }
   };
 
-  // === Tag Operations ===
-  
-  const addTag = async (tagData) => {
-    const newTag = {
-      id: generateId('tag'),
-      name: tagData.name,
-      color: tagData.color || '#9E9E9E',
-      createdAt: formatDateTime(new Date())
-    };
-    
-    try {
-      await appendRow(SHEETS.TAGS, newTag);
-      setTags(prev => [...prev, newTag]);
-      return newTag;
-    } catch (err) {
-      if (handleAuthError(err)) throw err;
-      throw err;
-    }
-  };
-
-  const updateTag = async (tagId, updates) => {
-    const tag = tags.find(t => t.id === tagId);
-    if (!tag) throw new Error('Tag not found');
-    
-    const updatedTag = { ...tag, ...updates };
-    
-    try {
-      await updateRowById(SHEETS.TAGS, tagId, updatedTag);
-      setTags(prev => prev.map(t => t.id === tagId ? updatedTag : t));
-      return updatedTag;
-    } catch (err) {
-      if (handleAuthError(err)) throw err;
-      throw err;
-    }
-  };
-
-  const deleteTag = async (tagId) => {
-    const tag = tags.find(t => t.id === tagId);
-    if (!tag) throw new Error('Tag not found');
-    
-    try {
-      // Remove tag from all tasks
-      const tasksWithTag = tasks.filter(t => t.tags?.includes(tagId));
-      for (const task of tasksWithTag) {
-        const newTags = task.tags.split(',').filter(id => id !== tagId).join(',');
-        await updateTask(task.id, { tags: newTags });
-      }
-      
-      // Remove tag from all routines
-      const routinesWithTag = routines.filter(r => r.tags?.includes(tagId));
-      for (const routine of routinesWithTag) {
-        const newTags = routine.tags.split(',').filter(id => id !== tagId).join(',');
-        await updateRoutine(routine.id, { tags: newTags });
-      }
-      
-      await deleteRowById(SHEETS.TAGS, tagId);
-      setTags(prev => prev.filter(t => t.id !== tagId));
-    } catch (err) {
-      if (handleAuthError(err)) throw err;
-      throw err;
-    }
-  };
-
-  // Find or create tag by name
-  const findOrCreateTag = async (tagName) => {
-    const existingTag = tags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
-    if (existingTag) return existingTag;
-    return await addTag({ name: tagName });
-  };
-
-  // === Category Operations ===
-  
+  // Category operations
   const addMainCategory = async (categoryData) => {
-    const newCategory = {
-      id: generateId('main'),
-      ...categoryData,
-      sortOrder: mainCategories.length + 1
-    };
-    
     try {
-      await appendRow(SHEETS.MAIN_CATEGORIES, newCategory);
+      const id = generateId();
+      const now = new Date().toISOString();
+      const newCategory = {
+        id,
+        name: categoryData.name,
+        color: categoryData.color || '#4A90D9',
+        createdAt: now
+      };
+      
+      const rowData = [newCategory.id, newCategory.name, newCategory.color, newCategory.createdAt];
+      await appendRow(SHEETS.MAIN_CATEGORIES, rowData);
       setMainCategories(prev => [...prev, newCategory]);
       return newCategory;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
-      throw err;
-    }
-  };
-
-  const addSubCategory = async (categoryData) => {
-    const newCategory = {
-      id: generateId('sub'),
-      ...categoryData,
-      sortOrder: subCategories.filter(s => s.mainCategoryId === categoryData.mainCategoryId).length + 1
-    };
-    
-    try {
-      await appendRow(SHEETS.SUB_CATEGORIES, newCategory);
-      setSubCategories(prev => [...prev, newCategory]);
-      return newCategory;
-    } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to add main category:', err);
       throw err;
     }
   };
 
   const updateMainCategory = async (categoryId, updates) => {
-    const category = mainCategories.find(c => c.id === categoryId);
-    if (!category) throw new Error('Category not found');
-    
-    const updatedCategory = { ...category, ...updates };
-    
     try {
-      await updateRowById(SHEETS.MAIN_CATEGORIES, categoryId, updatedCategory);
+      const catIndex = mainCategories.findIndex(c => c.id === categoryId);
+      if (catIndex === -1) throw new Error('Category not found');
+      
+      const updatedCategory = { ...mainCategories[catIndex], ...updates };
+      const rowData = [updatedCategory.id, updatedCategory.name, updatedCategory.color, updatedCategory.createdAt];
+      
+      await updateRowById(SHEETS.MAIN_CATEGORIES, categoryId, rowData);
       setMainCategories(prev => prev.map(c => c.id === categoryId ? updatedCategory : c));
       return updatedCategory;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to update main category:', err);
       throw err;
     }
   };
 
   const deleteMainCategory = async (categoryId) => {
-    const category = mainCategories.find(c => c.id === categoryId);
-    if (!category) throw new Error('Category not found');
-    
     try {
       await deleteRowById(SHEETS.MAIN_CATEGORIES, categoryId);
       setMainCategories(prev => prev.filter(c => c.id !== categoryId));
+      // Also remove related sub-categories
+      const relatedSubCats = subCategories.filter(sc => sc.mainCategoryId === categoryId);
+      for (const subCat of relatedSubCats) {
+        await deleteRowById(SHEETS.SUB_CATEGORIES, subCat.id);
+      }
+      setSubCategories(prev => prev.filter(c => c.mainCategoryId !== categoryId));
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to delete main category:', err);
+      throw err;
+    }
+  };
+
+  const addSubCategory = async (categoryData) => {
+    try {
+      const id = generateId();
+      const now = new Date().toISOString();
+      const newCategory = {
+        id,
+        mainCategoryId: categoryData.mainCategoryId,
+        name: categoryData.name,
+        createdAt: now
+      };
+      
+      const rowData = [newCategory.id, newCategory.mainCategoryId, newCategory.name, newCategory.createdAt];
+      await appendRow(SHEETS.SUB_CATEGORIES, rowData);
+      setSubCategories(prev => [...prev, newCategory]);
+      return newCategory;
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      console.error('Failed to add sub category:', err);
       throw err;
     }
   };
 
   const updateSubCategory = async (categoryId, updates) => {
-    const category = subCategories.find(c => c.id === categoryId);
-    if (!category) throw new Error('SubCategory not found');
-    
-    const updatedCategory = { ...category, ...updates };
-    
     try {
-      await updateRowById(SHEETS.SUB_CATEGORIES, categoryId, updatedCategory);
+      const catIndex = subCategories.findIndex(c => c.id === categoryId);
+      if (catIndex === -1) throw new Error('Sub category not found');
+      
+      const updatedCategory = { ...subCategories[catIndex], ...updates };
+      const rowData = [updatedCategory.id, updatedCategory.mainCategoryId, updatedCategory.name, updatedCategory.createdAt];
+      
+      await updateRowById(SHEETS.SUB_CATEGORIES, categoryId, rowData);
       setSubCategories(prev => prev.map(c => c.id === categoryId ? updatedCategory : c));
       return updatedCategory;
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to update sub category:', err);
       throw err;
     }
   };
 
   const deleteSubCategory = async (categoryId) => {
-    const category = subCategories.find(c => c.id === categoryId);
-    if (!category) throw new Error('SubCategory not found');
-    
     try {
       await deleteRowById(SHEETS.SUB_CATEGORIES, categoryId);
       setSubCategories(prev => prev.filter(c => c.id !== categoryId));
     } catch (err) {
-      if (handleAuthError(err)) throw err;
+      if (handleAuthError(err)) return;
+      console.error('Failed to delete sub category:', err);
       throw err;
     }
   };
 
-  // === Helper Functions ===
-  
+  // Tag operations
+  const addTag = async (tagData) => {
+    try {
+      const id = generateId();
+      const now = new Date().toISOString();
+      const newTag = {
+        id,
+        name: tagData.name,
+        color: tagData.color || '#6B7280',
+        createdAt: now
+      };
+      
+      const rowData = [newTag.id, newTag.name, newTag.color, newTag.createdAt];
+      await appendRow(SHEETS.TAGS, rowData);
+      setTags(prev => [...prev, newTag]);
+      return newTag;
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      console.error('Failed to add tag:', err);
+      throw err;
+    }
+  };
+
+  const updateTag = async (tagId, updates) => {
+    try {
+      const tagIndex = tags.findIndex(t => t.id === tagId);
+      if (tagIndex === -1) throw new Error('Tag not found');
+      
+      const updatedTag = { ...tags[tagIndex], ...updates };
+      const rowData = [updatedTag.id, updatedTag.name, updatedTag.color, updatedTag.createdAt];
+      
+      await updateRowById(SHEETS.TAGS, tagId, rowData);
+      setTags(prev => prev.map(t => t.id === tagId ? updatedTag : t));
+      return updatedTag;
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      console.error('Failed to update tag:', err);
+      throw err;
+    }
+  };
+
+  const deleteTag = async (tagId) => {
+    try {
+      await deleteRowById(SHEETS.TAGS, tagId);
+      setTags(prev => prev.filter(t => t.id !== tagId));
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      console.error('Failed to delete tag:', err);
+      throw err;
+    }
+  };
+
+  // Helper functions
   const getMainCategory = (id) => mainCategories.find(c => c.id === id);
   const getSubCategory = (id) => subCategories.find(c => c.id === id);
-  const getTag = (id) => tags.find(t => t.id === id);
-  
-  const getSubCategoriesForMain = (mainCategoryId) => 
-    subCategories.filter(s => s.mainCategoryId === mainCategoryId);
+  const getSubCategoriesByMain = (mainId) => subCategories.filter(c => c.mainCategoryId === mainId);
 
   const value = {
     // Data
@@ -419,13 +506,8 @@ export const DataProvider = ({ children }) => {
     mainCategories,
     subCategories,
     tags,
-    
-    // State
     isLoading,
     error,
-    
-    // Actions
-    fetchAllData,
     
     // Task operations
     addTask,
@@ -436,14 +518,10 @@ export const DataProvider = ({ children }) => {
     addRoutine,
     updateRoutine,
     deleteRoutine,
+    
+    // Routine Log operations
     addRoutineLog,
     updateRoutineLog,
-    
-    // Tag operations
-    addTag,
-    updateTag,
-    deleteTag,
-    findOrCreateTag,
     
     // Category operations
     addMainCategory,
@@ -453,11 +531,18 @@ export const DataProvider = ({ children }) => {
     updateSubCategory,
     deleteSubCategory,
     
+    // Tag operations
+    addTag,
+    updateTag,
+    deleteTag,
+    
     // Helpers
     getMainCategory,
     getSubCategory,
-    getTag,
-    getSubCategoriesForMain
+    getSubCategoriesByMain,
+    
+    // Refresh
+    refreshData: loadData
   };
 
   return (
@@ -465,12 +550,4 @@ export const DataProvider = ({ children }) => {
       {children}
     </DataContext.Provider>
   );
-};
-
-export const useData = () => {
-  const context = useContext(DataContext);
-  if (!context) {
-    throw new Error('useData must be used within a DataProvider');
-  }
-  return context;
 };

@@ -28,6 +28,7 @@ React + Google Sheets API を使用した PWA 対応のタスク管理アプリ�
 - ✅ 開始日・期限日・時間の設定
 - ✅ 見積もり工数（日数・時間）
 - ✅ 関連リンクの添付（最大5件）
+- ✅ 複数選択・一括削除
 
 ### ルーティン管理
 - 🔄 繰り返しタスクの設定
@@ -65,7 +66,7 @@ React + Google Sheets API を使用した PWA 対応のタスク管理アプリ�
 | PWA | vite-plugin-pwa |
 | アイコン | Lucide React |
 | 日付処理 | date-fns |
-| ホスティング | Netlify |
+| ホスティング | Cloudflare Pages |
 
 ## 🚀 セットアップ
 
@@ -99,7 +100,7 @@ VITE_SPREADSHEET_ID=your-spreadsheet-id
 4. アプリケーションの種類: **ウェブアプリケーション**
 5. 承認済みの JavaScript 生成元に以下を追加:
    - `http://localhost:5173`（開発用）
-   - `https://your-app.netlify.app`（本番用）
+   - `https://your-app.pages.dev`（本番用）
 
 ### 5. スプレッドシート準備
 
@@ -130,21 +131,16 @@ npm run dev
 npm run build
 ```
 
-## 🌐 デプロイ（Netlify）
+## 🌐 デプロイ（Cloudflare Pages）
 
-### 方法1: ドラッグ＆ドロップ
+### GitHub連携
 
-1. [Netlify](https://app.netlify.com/) にログイン
-2. `dist` フォルダをドラッグ＆ドロップ
-
-### 方法2: GitHub連携（推奨）
-
-1. Netlifyで「Add new site」→「Import an existing project」
+1. Cloudflare Dashboardで「Workers & Pages」→「Create」→「Pages」
 2. GitHubリポジトリを選択
 3. ビルド設定:
    - Build command: `npm run build`
-   - Publish directory: `dist`
-4. 環境変数を設定（Site settings → Environment variables）:
+   - Build output directory: `dist`
+4. 環境変数を設定:
    - `VITE_GOOGLE_CLIENT_ID`
    - `VITE_SPREADSHEET_ID`
 
@@ -200,7 +196,9 @@ MIT License
 
 ### v1.0.6 (2025-12-27)
 - 🐛 タスク一覧の3点メニューが表示されない問題を修正
+- 🐛 ステータスメニューが他のタスクに隠れる問題を修正
 - ✨ タスク一覧で複数選択・一括削除機能を追加
+- 💄 タスク一覧のレイアウト改善（検索窓を独立行に）
 
 ### v1.0.5 (2025-12-27)
 - 🔧 IDベースの行検索に変更（インデックスずれによるデータ破損を防止）
