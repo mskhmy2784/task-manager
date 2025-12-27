@@ -46,10 +46,13 @@ const TaskItem = ({
     : [];
 
   const taskLinks = task.links
-    ? task.links.split('\n').filter(l => l.trim()).map(link => {
-        const parts = link.split('|');
-        return { name: parts[0] || link, url: parts[1] || link };
-      })
+    ? task.links.split('\n')
+        .filter(l => l.trim())
+        .map(link => {
+          const parts = link.split('|');
+          return { name: parts[0]?.trim() || '', url: parts[1]?.trim() || parts[0]?.trim() || '' };
+        })
+        .filter(link => link.url && link.url !== '[]' && link.url !== '()') // 空や無効なリンクを除外
     : [];
 
   const priorityLabels = {
@@ -122,7 +125,7 @@ const TaskItem = ({
   return (
     <div 
       className={`task-item-card ${task.status === 'done' ? 'done' : ''} ${isOverdue ? 'overdue' : ''} ${isFuture ? 'future' : ''} ${selectMode ? 'select-mode' : ''} ${isSelected ? 'selected' : ''}`}
-      onClick={handleCardClick}
+      onClick={selectMode ? handleCardClick : undefined}
     >
       <div className="task-main">
         {/* 選択モード時はチェックボックス、通常時は完了チェック */}
@@ -244,7 +247,7 @@ const TaskItem = ({
               </button>
             )}
 
-            <div className="menu-wrapper">
+            <div className="menu-wrapper" onClick={(e) => e.stopPropagation()}>
               <button
                 className="action-btn menu-btn"
                 onClick={(e) => {
@@ -259,7 +262,7 @@ const TaskItem = ({
               {showMenu && (
                 <>
                   <div className="menu-backdrop" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-                  <div className="dropdown-menu">
+                  <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
                     <button onClick={(e) => { e.stopPropagation(); onEdit(task); setShowMenu(false); }}>
                       <Edit size={14} />
                       編集
