@@ -44,6 +44,9 @@ const TaskListPage = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const [showBulkPriority, setShowBulkPriority] = useState(false);
+  const [showBulkDueDate, setShowBulkDueDate] = useState(false);
+  const [bulkDueDate, setBulkDueDate] = useState('');
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -220,6 +223,43 @@ const TaskListPage = () => {
     }
   };
 
+  // 一括重要度更新
+  const handleBulkPriorityUpdate = async (newPriority) => {
+    if (selectedTasks.length === 0) return;
+    
+    setBulkUpdating(true);
+    try {
+      for (const taskId of selectedTasks) {
+        await updateTask(taskId, { priority: newPriority });
+      }
+      setSelectedTasks([]);
+      setShowBulkPriority(false);
+    } catch (error) {
+      console.error('Failed to update tasks:', error);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  // 一括期日更新
+  const handleBulkDueDateUpdate = async () => {
+    if (selectedTasks.length === 0 || !bulkDueDate) return;
+    
+    setBulkUpdating(true);
+    try {
+      for (const taskId of selectedTasks) {
+        await updateTask(taskId, { dueDate: bulkDueDate });
+      }
+      setSelectedTasks([]);
+      setShowBulkDueDate(false);
+      setBulkDueDate('');
+    } catch (error) {
+      console.error('Failed to update tasks:', error);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   // タスク編集
   const handleEditTask = (task) => {
     setEditingTask(task);
@@ -307,18 +347,23 @@ const TaskListPage = () => {
           </div>
           {selectedTasks.length > 0 && (
             <div className="bulk-actions-right">
-              <div className="bulk-status-dropdown">
+              {/* ステータス変更 */}
+              <div className="bulk-dropdown-wrapper">
                 <button 
-                  className="bulk-status-btn"
-                  onClick={() => setShowBulkActions(!showBulkActions)}
+                  className="bulk-action-btn"
+                  onClick={() => {
+                    setShowBulkActions(!showBulkActions);
+                    setShowBulkPriority(false);
+                    setShowBulkDueDate(false);
+                  }}
                   disabled={bulkUpdating}
                 >
-                  ステータス変更
+                  ステータス
                 </button>
                 {showBulkActions && (
                   <>
                     <div className="bulk-backdrop" onClick={() => setShowBulkActions(false)} />
-                    <div className="bulk-dropdown-menu">
+                    <div className="bulk-dropdown-menu down">
                       <button onClick={() => handleBulkStatusUpdate('todo')}>未着手</button>
                       <button onClick={() => handleBulkStatusUpdate('inProgress')}>進行中</button>
                       <button onClick={() => handleBulkStatusUpdate('done')}>完了</button>
@@ -327,6 +372,69 @@ const TaskListPage = () => {
                   </>
                 )}
               </div>
+
+              {/* 重要度変更 */}
+              <div className="bulk-dropdown-wrapper">
+                <button 
+                  className="bulk-action-btn"
+                  onClick={() => {
+                    setShowBulkPriority(!showBulkPriority);
+                    setShowBulkActions(false);
+                    setShowBulkDueDate(false);
+                  }}
+                  disabled={bulkUpdating}
+                >
+                  重要度
+                </button>
+                {showBulkPriority && (
+                  <>
+                    <div className="bulk-backdrop" onClick={() => setShowBulkPriority(false)} />
+                    <div className="bulk-dropdown-menu down">
+                      <button onClick={() => handleBulkPriorityUpdate('veryHigh')}>最高</button>
+                      <button onClick={() => handleBulkPriorityUpdate('high')}>高</button>
+                      <button onClick={() => handleBulkPriorityUpdate('medium')}>中</button>
+                      <button onClick={() => handleBulkPriorityUpdate('low')}>低</button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* 期日変更 */}
+              <div className="bulk-dropdown-wrapper">
+                <button 
+                  className="bulk-action-btn"
+                  onClick={() => {
+                    setShowBulkDueDate(!showBulkDueDate);
+                    setShowBulkActions(false);
+                    setShowBulkPriority(false);
+                  }}
+                  disabled={bulkUpdating}
+                >
+                  期日
+                </button>
+                {showBulkDueDate && (
+                  <>
+                    <div className="bulk-backdrop" onClick={() => setShowBulkDueDate(false)} />
+                    <div className="bulk-dropdown-menu down date-picker">
+                      <input
+                        type="date"
+                        value={bulkDueDate}
+                        onChange={(e) => setBulkDueDate(e.target.value)}
+                        className="bulk-date-input"
+                      />
+                      <button 
+                        onClick={handleBulkDueDateUpdate}
+                        disabled={!bulkDueDate}
+                        className="bulk-date-apply"
+                      >
+                        適用
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* 削除 */}
               <button 
                 className="bulk-delete-btn"
                 onClick={handleBulkDelete}

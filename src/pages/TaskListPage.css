@@ -184,7 +184,33 @@
 .bulk-actions-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bulk-dropdown-wrapper {
+  position: relative;
+}
+
+.bulk-action-btn {
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulk-action-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.bulk-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .bulk-status-dropdown {
@@ -220,6 +246,7 @@
   z-index: 100;
 }
 
+/* ドロップダウンメニュー（下方向に展開） */
 .bulk-dropdown-menu {
   position: absolute;
   bottom: 100%;
@@ -232,6 +259,15 @@
   z-index: 110;
   min-width: 120px;
   overflow: hidden;
+}
+
+/* 下方向に展開するバリエーション */
+.bulk-dropdown-menu.down {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .bulk-dropdown-menu button {
@@ -249,6 +285,56 @@
 
 .bulk-dropdown-menu button:hover {
   background: #f3f4f6;
+}
+
+.bulk-dropdown-menu button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 日付入力用 */
+.bulk-dropdown-menu.date-picker {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.bulk-date-input {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #374151;
+  width: 100%;
+}
+
+.bulk-date-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.bulk-date-apply {
+  padding: 8px 12px;
+  background: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.bulk-date-apply:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.bulk-date-apply:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }
 
 .bulk-delete-btn {
