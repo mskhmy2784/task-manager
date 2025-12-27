@@ -298,7 +298,12 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 160px;
+  min-width: 200px;
+}
+
+.bulk-date-row {
+  display: flex;
+  gap: 8px;
 }
 
 .bulk-date-input {
@@ -307,13 +312,31 @@
   border-radius: 6px;
   font-size: 0.875rem;
   color: #374151;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
-.bulk-date-input:focus {
+.bulk-time-input {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #374151;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.bulk-date-input:focus,
+.bulk-time-input:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.bulk-date-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  padding: 4px 0;
 }
 
 .bulk-date-apply {

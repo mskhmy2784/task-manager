@@ -47,6 +47,8 @@ const TaskListPage = () => {
   const [showBulkPriority, setShowBulkPriority] = useState(false);
   const [showBulkDueDate, setShowBulkDueDate] = useState(false);
   const [bulkDueDate, setBulkDueDate] = useState('');
+  const [bulkDueTime, setBulkDueTime] = useState('');
+  const [bulkDateError, setBulkDateError] = useState('');
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -245,16 +247,40 @@ const TaskListPage = () => {
   const handleBulkDueDateUpdate = async () => {
     if (selectedTasks.length === 0 || !bulkDueDate) return;
     
+    // 開始日との整合性チェック
+    const conflictTasks = [];
+    for (const taskId of selectedTasks) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.startDate && task.startDate > bulkDueDate) {
+        conflictTasks.push(task.title);
+      }
+    }
+    
+    if (conflictTasks.length > 0) {
+      const confirmMessage = `以下のタスクは開始日が期日より後になります：\n\n${conflictTasks.slice(0, 5).join('\n')}${conflictTasks.length > 5 ? `\n...他${conflictTasks.length - 5}件` : ''}\n\n続行しますか？`;
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+    }
+    
     setBulkUpdating(true);
+    setBulkDateError('');
     try {
+      const updateData = { dueDate: bulkDueDate };
+      if (bulkDueTime) {
+        updateData.dueTime = bulkDueTime;
+      }
+      
       for (const taskId of selectedTasks) {
-        await updateTask(taskId, { dueDate: bulkDueDate });
+        await updateTask(taskId, updateData);
       }
       setSelectedTasks([]);
       setShowBulkDueDate(false);
       setBulkDueDate('');
+      setBulkDueTime('');
     } catch (error) {
       console.error('Failed to update tasks:', error);
+      setBulkDateError('更新に失敗しました');
     } finally {
       setBulkUpdating(false);
     }
@@ -407,6 +433,7 @@ const TaskListPage = () => {
                     setShowBulkDueDate(!showBulkDueDate);
                     setShowBulkActions(false);
                     setShowBulkPriority(false);
+                    setBulkDateError('');
                   }}
                   disabled={bulkUpdating}
                 >
@@ -414,20 +441,35 @@ const TaskListPage = () => {
                 </button>
                 {showBulkDueDate && (
                   <>
-                    <div className="bulk-backdrop" onClick={() => setShowBulkDueDate(false)} />
+                    <div className="bulk-backdrop" onClick={() => {
+                      setShowBulkDueDate(false);
+                      setBulkDateError('');
+                    }} />
                     <div className="bulk-dropdown-menu down date-picker">
-                      <input
-                        type="date"
-                        value={bulkDueDate}
-                        onChange={(e) => setBulkDueDate(e.target.value)}
-                        className="bulk-date-input"
-                      />
+                      <div className="bulk-date-row">
+                        <input
+                          type="date"
+                          value={bulkDueDate}
+                          onChange={(e) => setBulkDueDate(e.target.value)}
+                          className="bulk-date-input"
+                        />
+                        <input
+                          type="time"
+                          value={bulkDueTime}
+                          onChange={(e) => setBulkDueTime(e.target.value)}
+                          className="bulk-time-input"
+                          placeholder="時間"
+                        />
+                      </div>
+                      {bulkDateError && (
+                        <div className="bulk-date-error">{bulkDateError}</div>
+                      )}
                       <button 
                         onClick={handleBulkDueDateUpdate}
-                        disabled={!bulkDueDate}
+                        disabled={!bulkDueDate || bulkUpdating}
                         className="bulk-date-apply"
                       >
-                        適用
+                        {bulkUpdating ? '更新中...' : '適用'}
                       </button>
                     </div>
                   </>
