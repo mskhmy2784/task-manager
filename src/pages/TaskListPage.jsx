@@ -247,20 +247,26 @@ const TaskListPage = () => {
   const handleBulkDueDateUpdate = async () => {
     if (selectedTasks.length === 0 || !bulkDueDate) return;
     
-    // 開始日との整合性チェック
+    // 開始日時との整合性チェック（時間も含む）
+    const dueDateTime = new Date(`${bulkDueDate}T${bulkDueTime || '23:59'}:00`);
+    
     const conflictTasks = [];
     for (const taskId of selectedTasks) {
       const task = tasks.find(t => t.id === taskId);
-      if (task && task.startDate && task.startDate > bulkDueDate) {
-        conflictTasks.push(task.title);
+      if (task && task.startDate) {
+        const startDateTime = new Date(`${task.startDate}T${task.startTime || '00:00'}:00`);
+        if (startDateTime > dueDateTime) {
+          conflictTasks.push(task.title);
+        }
       }
     }
     
     if (conflictTasks.length > 0) {
-      const confirmMessage = `以下のタスクは開始日が期日より後になります：\n\n${conflictTasks.slice(0, 5).join('\n')}${conflictTasks.length > 5 ? `\n...他${conflictTasks.length - 5}件` : ''}\n\n続行しますか？`;
-      if (!window.confirm(confirmMessage)) {
-        return;
-      }
+      const errorMsg = conflictTasks.length <= 3 
+        ? `開始日時が期日時より後のタスクがあります:\n${conflictTasks.join('、')}`
+        : `開始日時が期日時より後のタスクが${conflictTasks.length}件あります`;
+      setBulkDateError(errorMsg);
+      return;
     }
     
     setBulkUpdating(true);
@@ -434,6 +440,8 @@ const TaskListPage = () => {
                     setShowBulkActions(false);
                     setShowBulkPriority(false);
                     setBulkDateError('');
+                    setBulkDueDate('');
+                    setBulkDueTime('');
                   }}
                   disabled={bulkUpdating}
                 >
@@ -444,19 +452,59 @@ const TaskListPage = () => {
                     <div className="bulk-backdrop" onClick={() => {
                       setShowBulkDueDate(false);
                       setBulkDateError('');
+                      setBulkDueDate('');
+                      setBulkDueTime('');
                     }} />
                     <div className="bulk-dropdown-menu down date-picker">
                       <div className="bulk-date-row">
                         <input
                           type="date"
                           value={bulkDueDate}
-                          onChange={(e) => setBulkDueDate(e.target.value)}
+                          onChange={(e) => {
+                            const newDate = e.target.value;
+                            setBulkDueDate(newDate);
+                            // リアルタイムで整合性チェック（時間も含む）
+                            if (newDate) {
+                              const dueDateTime = new Date(`${newDate}T${bulkDueTime || '23:59'}:00`);
+                              const conflicts = selectedTasks.filter(taskId => {
+                                const task = tasks.find(t => t.id === taskId);
+                                if (!task || !task.startDate) return false;
+                                const startDateTime = new Date(`${task.startDate}T${task.startTime || '00:00'}:00`);
+                                return startDateTime > dueDateTime;
+                              });
+                              if (conflicts.length > 0) {
+                                setBulkDateError(`開始日時が期日時より後のタスクが${conflicts.length}件あります`);
+                              } else {
+                                setBulkDateError('');
+                              }
+                            } else {
+                              setBulkDateError('');
+                            }
+                          }}
                           className="bulk-date-input"
                         />
                         <input
                           type="time"
                           value={bulkDueTime}
-                          onChange={(e) => setBulkDueTime(e.target.value)}
+                          onChange={(e) => {
+                            const newTime = e.target.value;
+                            setBulkDueTime(newTime);
+                            // リアルタイムで整合性チェック（時間も含む）
+                            if (bulkDueDate) {
+                              const dueDateTime = new Date(`${bulkDueDate}T${newTime || '23:59'}:00`);
+                              const conflicts = selectedTasks.filter(taskId => {
+                                const task = tasks.find(t => t.id === taskId);
+                                if (!task || !task.startDate) return false;
+                                const startDateTime = new Date(`${task.startDate}T${task.startTime || '00:00'}:00`);
+                                return startDateTime > dueDateTime;
+                              });
+                              if (conflicts.length > 0) {
+                                setBulkDateError(`開始日時が期日時より後のタスクが${conflicts.length}件あります`);
+                              } else {
+                                setBulkDateError('');
+                              }
+                            }
+                          }}
                           className="bulk-time-input"
                           placeholder="時間"
                         />
@@ -466,7 +514,7 @@ const TaskListPage = () => {
                       )}
                       <button 
                         onClick={handleBulkDueDateUpdate}
-                        disabled={!bulkDueDate || bulkUpdating}
+                        disabled={!bulkDueDate || bulkUpdating || bulkDateError}
                         className="bulk-date-apply"
                       >
                         {bulkUpdating ? '更新中...' : '適用'}
