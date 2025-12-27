@@ -1,14 +1,14 @@
-/* Task Item Card */
+/* Task Item Styles */
 .task-item-card {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
   border-radius: 10px;
+  border: 1px solid #e5e7eb;
   transition: all 0.2s ease;
 }
 
 .task-item-card:hover {
   border-color: #d1d5db;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .task-item-card.done {
@@ -16,29 +16,21 @@
   background: #f9fafb;
 }
 
+.task-item-card.done .task-title {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
 .task-item-card.overdue {
-  border-left: 3px solid #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
 }
 
 .task-item-card.future {
-  opacity: 0.6;
-  background: #fafafa;
+  border-color: #bae6fd;
+  background: #f0f9ff;
 }
 
-.task-item-card.selection-mode {
-  cursor: pointer;
-}
-
-.task-item-card.selection-mode:hover {
-  background: #f3f4f6;
-}
-
-.task-item-card.selected {
-  background: #eff6ff;
-  border-color: #4A90D9;
-}
-
-/* Task Main */
 .task-main {
   display: flex;
   align-items: flex-start;
@@ -48,7 +40,6 @@
 
 /* Checkbox */
 .checkbox {
-  flex-shrink: 0;
   width: 22px;
   height: 22px;
   border: 2px solid #d1d5db;
@@ -58,8 +49,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  flex-shrink: 0;
   margin-top: 2px;
+  transition: all 0.2s ease;
 }
 
 .checkbox:hover {
@@ -72,100 +64,71 @@
   color: #ffffff;
 }
 
-/* Selection Checkbox */
-.selection-checkbox {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  transition: all 0.2s ease;
-  margin-top: 2px;
-  padding: 0;
-}
-
-.selection-checkbox:hover {
-  color: #4A90D9;
-}
-
-.selection-checkbox.checked {
-  color: #4A90D9;
+.checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Task Content */
 .task-content {
   flex: 1;
   min-width: 0;
+  cursor: pointer;
 }
 
-.task-header {
+.task-title-row {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 6px;
-  flex-wrap: wrap;
 }
 
 .task-title {
+  font-size: 0.9375rem;
   font-weight: 500;
   color: #1f2937;
-  word-break: break-word;
-}
-
-.task-item-card.done .task-title {
-  text-decoration: line-through;
-  color: #9ca3af;
-}
-
-/* Badges */
-.task-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.category-badge {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .priority-badge {
   font-size: 0.6875rem;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .priority-badge.veryHigh {
-  background: #fef2f2;
+  background: #fee2e2;
   color: #dc2626;
 }
 
 .priority-badge.high {
-  background: #fff7ed;
+  background: #ffedd5;
   color: #ea580c;
 }
 
 .priority-badge.medium {
-  background: #fefce8;
-  color: #ca8a04;
+  background: #fef3c7;
+  color: #d97706;
 }
 
 .priority-badge.low {
-  background: #f0fdf4;
-  color: #16a34a;
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
-/* Status Badge */
+/* Task Badges Container */
+.task-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Status Badge Dropdown - 改善版 */
 .status-dropdown-wrapper {
   position: relative;
 }
@@ -176,19 +139,24 @@
   gap: 4px;
   font-size: 0.6875rem;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
   border: none;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .status-badge:hover {
-  opacity: 0.8;
+  filter: brightness(0.95);
+}
+
+.status-badge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .status-badge.todo {
-  background: #f3f4f6;
+  background: #e5e7eb;
   color: #4b5563;
 }
 
@@ -213,16 +181,20 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 999;
+  z-index: 100;
 }
 
+/* ステータスドロップダウン - 上に表示するように変更 */
 .status-dropdown {
-  position: fixed;
+  position: absolute;
+  bottom: 100%;  /* 上に表示 */
+  right: 0;      /* 右揃え */
+  margin-bottom: 4px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 110;
   min-width: 100px;
   overflow: hidden;
 }
@@ -270,6 +242,7 @@
   gap: 12px;
   font-size: 0.8125rem;
   margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .category-label {
@@ -352,18 +325,20 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 999;
+  z-index: 100;
 }
 
 .dropdown-menu {
-  position: fixed;
+  position: absolute;
+  top: 100%;
+  right: 0;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 140px;
-  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 110;
+  min-width: 120px;
+  overflow: hidden;
 }
 
 .dropdown-menu button {
@@ -371,14 +346,13 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 14px;
   background: none;
   border: none;
   text-align: left;
   cursor: pointer;
   font-size: 0.875rem;
   color: #374151;
-  border-radius: 6px;
   transition: background 0.2s ease;
 }
 
@@ -391,7 +365,7 @@
 }
 
 .dropdown-menu button.delete:hover {
-  background: #fef2f2;
+  background: #fee2e2;
 }
 
 /* Task Links */
@@ -438,8 +412,11 @@
     gap: 4px;
   }
 
-  .dropdown-menu {
-    left: auto !important;
-    right: 16px;
+  .task-title-row {
+    flex-wrap: wrap;
+  }
+
+  .task-badges {
+    flex-wrap: wrap;
   }
 }
