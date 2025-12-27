@@ -128,7 +128,7 @@
   flex-shrink: 0;
 }
 
-/* Status Badge Dropdown - 改善版 */
+/* Status Badge Dropdown */
 .status-dropdown-wrapper {
   position: relative;
 }
@@ -184,7 +184,10 @@
   z-index: 100;
 }
 
-/* ステータスドロップダウン - 上に表示するように変更 */
+/* ========================================
+   ステータスドロップダウン - 上に表示
+   v1.0.8 修正: 下のタスクと重ならないよう変更
+   ======================================== */
 .status-dropdown {
   position: absolute;
   bottom: 100%;  /* 上に表示 */
@@ -242,7 +245,6 @@
   gap: 12px;
   font-size: 0.8125rem;
   margin-bottom: 6px;
-  flex-wrap: wrap;
 }
 
 .category-label {
@@ -410,13 +412,5 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-  }
-
-  .task-title-row {
-    flex-wrap: wrap;
-  }
-
-  .task-badges {
-    flex-wrap: wrap;
   }
 }
