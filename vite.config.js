@@ -38,5 +38,20 @@ export default defineConfig({
   ],
   server: {
     port: 5173
-  }
+  },
+  // Cloudflare Pages用の設定
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts']
+        }
+      }
+    }
+  },
+  // 環境変数のプレフィックスを明示
+  envPrefix: 'VITE_'
 })
