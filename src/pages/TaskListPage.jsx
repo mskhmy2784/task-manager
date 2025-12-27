@@ -245,11 +245,13 @@ const TaskListPage = () => {
 
   return (
     <div className="task-list-page">
-      {/* Header - B案レイアウト */}
+      {/* Header */}
       <header className="page-header">
-        {/* 1行目: タイトルとボタン */}
-        <div className="header-top">
-          <h1>タスク一覧</h1>
+        {/* 1行目: タイトルのみ */}
+        <h1>タスク一覧</h1>
+
+        {/* 2行目: ボタンと検索バー */}
+        <div className="header-controls">
           <div className="header-buttons">
             <button 
               className={`select-btn ${selectMode ? 'active' : ''}`}
@@ -263,22 +265,20 @@ const TaskListPage = () => {
               <span>新規タスク</span>
             </button>
           </div>
-        </div>
-
-        {/* 2行目: 検索バー */}
-        <div className="search-bar">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="タスクを検索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button className="clear-search" onClick={() => setSearchQuery('')}>
-              <X size={16} />
-            </button>
-          )}
+          <div className="search-bar">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="タスクを検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="clear-search" onClick={() => setSearchQuery('')}>
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

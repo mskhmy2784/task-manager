@@ -25,7 +25,7 @@ const DashboardPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [showStatusMenu, setShowStatusMenu] = useState(null); // taskId or null
+  const [showStatusMenu, setShowStatusMenu] = useState(null);
 
   const statusLabels = {
     todo: '未着手',
@@ -78,10 +78,16 @@ const DashboardPage = () => {
     });
   }, [tasks, todayStr]);
 
-  // 期限切れタスク: 期限日 < 今日 AND 未完了
+  // 期限切れタスク: 期限日 < 今日 AND status が done 以外（onHold も含む）
+  // v1.0.8修正: incompleteTasks からではなく tasks から直接フィルタリング
   const overdueTasks = useMemo(() => {
-    return incompleteTasks.filter(t => t.dueDate && t.dueDate < todayStr);
-  }, [incompleteTasks, todayStr]);
+    return tasks.filter(t => 
+      t.title && t.title.trim() !== '' &&
+      t.dueDate && 
+      t.dueDate < todayStr && 
+      t.status !== 'done'
+    );
+  }, [tasks, todayStr]);
 
   // 保留タスク: status が onHold
   const onHoldTasks = useMemo(() => {
@@ -107,7 +113,6 @@ const DashboardPage = () => {
 
   // 今日のルーティン
   const todaysRoutines = useMemo(() => {
-    // Map Japanese day names to our short codes
     const dayMap = {
       '日曜日': 'sun', '月曜日': 'mon', '火曜日': 'tue', 
       '水曜日': 'wed', '木曜日': 'thu', '金曜日': 'fri', '土曜日': 'sat'
@@ -116,7 +121,6 @@ const DashboardPage = () => {
     const currentDayCode = dayMap[dayOfWeekJa];
     const dayOfMonth = today.getDate();
     
-    // Get last day of current month
     const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     
     return routines.filter(routine => {
@@ -126,12 +130,10 @@ const DashboardPage = () => {
         case 'daily':
           return true;
         case 'weekly':
-          // Check if current day is in the comma-separated list
           if (!routine.dayOfWeek) return false;
           const selectedDays = routine.dayOfWeek.split(',');
           return selectedDays.includes(currentDayCode);
         case 'monthly':
-          // Handle 'last' day option
           if (routine.dayOfMonth === 'last') {
             return dayOfMonth === lastDayOfMonth;
           }
@@ -208,7 +210,7 @@ const DashboardPage = () => {
     return cat ? cat.name : '';
   };
 
-  // 期限日をフォーマット（日付・曜日・時間）
+  // 期限日をフォーマット
   const formatDueDate = (dueDate, dueTime) => {
     if (!dueDate) return '';
     const date = new Date(dueDate);
@@ -401,11 +403,14 @@ const DashboardPage = () => {
                     </span>
                     <div className="task-content">
                       <span className="task-title">{routine.title}</span>
-                      {routine.mainCategoryId && (
-                        <div className="task-meta">
+                      <div className="task-meta">
+                        {routine.mainCategoryId && (
                           <span className="task-category">{getCategoryName(routine.mainCategoryId)}</span>
-                        </div>
-                      )}
+                        )}
+                        {routine.estimatedMinutes && (
+                          <span className="task-due">{routine.estimatedMinutes}分</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -416,8 +421,8 @@ const DashboardPage = () => {
 
         {/* Overdue Tasks */}
         {overdueTasks.length > 0 && (
-          <section className="dashboard-section overdue-section">
-            <h2 className="section-title">⚠️ 期限超過タスク</h2>
+          <section className="dashboard-section warning-section">
+            <h2 className="section-title warning">⚠️ 期限超過タスク</h2>
             <div className="task-list">
               {overdueTasks.map(task => (
                 <div 
@@ -439,19 +444,14 @@ const DashboardPage = () => {
                       {task.mainCategoryId && (
                         <span className="task-category">{getCategoryName(task.mainCategoryId)}</span>
                       )}
-                      <span className="task-due overdue">
-                        期限: {formatDueDate(task.dueDate, task.dueTime)}
-                      </span>
+                      {task.dueDate && (
+                        <span className="task-due overdue">
+                          期限: {formatDueDate(task.dueDate, task.dueTime)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="task-actions">
-                    <button 
-                      className="copy-btn"
-                      onClick={(e) => { e.stopPropagation(); handleCopyTask(task); }}
-                      title="コピー"
-                    >
-                      <Copy size={16} />
-                    </button>
                     <span className={`priority-badge ${task.priority}`}>
                       {task.priority === 'veryHigh' ? '最高' : 
                        task.priority === 'high' ? '高' : 

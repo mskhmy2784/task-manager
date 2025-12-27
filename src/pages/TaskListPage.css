@@ -27,30 +27,31 @@
   to { transform: rotate(360deg); }
 }
 
-/* Page Header - B案レイアウト */
+/* Page Header - タイトル1行目、ボタン+検索2行目 */
 .page-header {
   margin-bottom: 20px;
 }
 
-/* 1行目: タイトルとボタン */
-.header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.header-top h1 {
+.page-header h1 {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
-  margin: 0;
+  margin: 0 0 16px 0;
+}
+
+/* 2行目: ボタンと検索バー */
+.header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .header-buttons {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 /* 選択ボタン */
@@ -97,7 +98,7 @@
   background: #3b7dc4;
 }
 
-/* 2行目: 検索バー */
+/* 検索バー */
 .search-bar {
   display: flex;
   align-items: center;
@@ -106,6 +107,8 @@
   background: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .search-bar svg {
@@ -525,7 +528,7 @@
 
 /* Responsive */
 @media (max-width: 640px) {
-  .header-top {
+  .header-controls {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
