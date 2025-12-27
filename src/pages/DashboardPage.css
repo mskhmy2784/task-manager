@@ -408,7 +408,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10;
+  z-index: 100;
 }
 
 /* v1.0.8 修正: ステータスドロップダウンを常に上に表示 */
@@ -421,7 +421,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 20;
+  z-index: 110;
   min-width: 100px;
   overflow: hidden;
 }
