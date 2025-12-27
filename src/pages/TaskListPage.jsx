@@ -10,7 +10,8 @@ import {
   Search,
   CheckSquare,
   Square,
-  Trash2
+  Trash2,
+  ChevronDown
 } from 'lucide-react';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
@@ -22,6 +23,7 @@ const TaskListPage = () => {
     tasks,
     mainCategories,
     tags,
+    updateTask,
     deleteTask,
     isLoading
   } = useData();
@@ -44,8 +46,17 @@ const TaskListPage = () => {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showBulkStatusMenu, setShowBulkStatusMenu] = useState(false);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const statusOptions = [
+    { value: 'todo', label: '未着手' },
+    { value: 'inProgress', label: '進行中' },
+    { value: 'done', label: '完了' },
+    { value: 'onHold', label: '保留' }
+  ];
 
   // Handle URL parameters
   useEffect(() => {
@@ -58,12 +69,16 @@ const TaskListPage = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Exit selection mode when no tasks are selected
+  // Close bulk status menu when clicking outside
   useEffect(() => {
-    if (selectionMode && selectedTasks.size === 0) {
-      // Keep selection mode active even if nothing is selected
-    }
-  }, [selectedTasks, selectionMode]);
+    const handleClickOutside = () => {
+      if (showBulkStatusMenu) {
+        setShowBulkStatusMenu(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showBulkStatusMenu]);
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
@@ -203,6 +218,7 @@ const TaskListPage = () => {
       // Exit selection mode
       setSelectionMode(false);
       setSelectedTasks(new Set());
+      setShowBulkStatusMenu(false);
     } else {
       // Enter selection mode
       setSelectionMode(true);
@@ -254,6 +270,29 @@ const TaskListPage = () => {
       alert('タスクの削除中にエラーが発生しました');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedTasks.size === 0) return;
+    
+    setShowBulkStatusMenu(false);
+    setIsUpdatingStatus(true);
+    
+    try {
+      const taskIds = Array.from(selectedTasks);
+      for (const taskId of taskIds) {
+        await updateTask(taskId, { status: newStatus });
+      }
+      
+      // Clear selection and exit selection mode
+      setSelectedTasks(new Set());
+      setSelectionMode(false);
+    } catch (error) {
+      console.error('Failed to update tasks:', error);
+      alert('タスクの更新中にエラーが発生しました');
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -321,14 +360,45 @@ const TaskListPage = () => {
                 {selectedTasks.size}件選択中
               </span>
             </div>
-            <button 
-              className="bulk-delete-btn"
-              onClick={handleBulkDelete}
-              disabled={selectedTasks.size === 0 || isDeleting}
-            >
-              <Trash2 size={18} />
-              <span>{isDeleting ? '削除中...' : '一括削除'}</span>
-            </button>
+            <div className="bulk-actions">
+              {/* Bulk Status Change */}
+              <div className="bulk-status-wrapper">
+                <button 
+                  className="bulk-status-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowBulkStatusMenu(!showBulkStatusMenu);
+                  }}
+                  disabled={selectedTasks.size === 0 || isUpdatingStatus}
+                >
+                  <span>{isUpdatingStatus ? '更新中...' : 'ステータス変更'}</span>
+                  <ChevronDown size={16} />
+                </button>
+                {showBulkStatusMenu && (
+                  <div className="bulk-status-menu" onClick={(e) => e.stopPropagation()}>
+                    {statusOptions.map(option => (
+                      <button
+                        key={option.value}
+                        className={`bulk-status-option ${option.value}`}
+                        onClick={() => handleBulkStatusChange(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Bulk Delete */}
+              <button 
+                className="bulk-delete-btn"
+                onClick={handleBulkDelete}
+                disabled={selectedTasks.size === 0 || isDeleting}
+              >
+                <Trash2 size={18} />
+                <span>{isDeleting ? '削除中...' : '一括削除'}</span>
+              </button>
+            </div>
           </div>
         )}
 

@@ -116,6 +116,91 @@
   color: #1e40af;
 }
 
+/* Bulk Actions */
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Bulk Status Change */
+.bulk-status-wrapper {
+  position: relative;
+}
+
+.bulk-status-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulk-status-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.bulk-status-btn:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.bulk-status-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 140px;
+  overflow: hidden;
+}
+
+.bulk-status-option {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.bulk-status-option:hover {
+  background: #f3f4f6;
+}
+
+.bulk-status-option.todo {
+  color: #4b5563;
+}
+
+.bulk-status-option.inProgress {
+  color: #2563eb;
+}
+
+.bulk-status-option.done {
+  color: #059669;
+}
+
+.bulk-status-option.onHold {
+  color: #d97706;
+}
+
+/* Bulk Delete */
 .bulk-delete-btn {
   display: flex;
   align-items: center;
@@ -442,9 +527,19 @@
     justify-content: space-between;
   }
 
+  .bulk-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .bulk-status-btn,
   .bulk-delete-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .bulk-status-menu {
+    width: 100%;
   }
 
   .controls-section {
