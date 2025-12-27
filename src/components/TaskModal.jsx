@@ -106,6 +106,10 @@ const TaskModal = ({ isOpen, onClose, task = null, defaultDate = null }) => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
+    // Clear date error when any date/time field is modified
+    if (['startDate', 'startTime', 'dueDate', 'dueTime'].includes(name)) {
+      setErrors(prev => ({ ...prev, dates: null }));
+    }
   };
 
   const handleAddTag = async (tagName) => {
@@ -168,10 +172,14 @@ const TaskModal = ({ isOpen, onClose, task = null, defaultDate = null }) => {
     if (!formData.title.trim()) {
       newErrors.title = 'タイトルは必須です';
     }
-    // 開始日と期限日の整合性チェック
+    // 開始日時と期限日時の整合性チェック（時間も含む）
     if (formData.startDate && formData.dueDate) {
-      if (formData.startDate > formData.dueDate) {
-        newErrors.dates = '開始日は期限日より前の日付にしてください';
+      // 開始時間未入力 → 0:00扱い、期限時間未入力 → 23:59扱い
+      const startDateTime = new Date(`${formData.startDate}T${formData.startTime || '00:00'}:00`);
+      const dueDateTime = new Date(`${formData.dueDate}T${formData.dueTime || '23:59'}:00`);
+      
+      if (startDateTime > dueDateTime) {
+        newErrors.dates = '開始日時は期限日時より前にしてください';
       }
     }
     setErrors(newErrors);
