@@ -45,12 +45,15 @@
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .header-buttons {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 /* 選択ボタン */

@@ -233,7 +233,10 @@ const TaskItem = ({
             {taskLinks.length > 0 && (
               <button
                 className="action-btn link-btn"
-                onClick={() => setShowLinks(!showLinks)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowLinks(!showLinks);
+                }}
                 title="リンク"
               >
                 <LinkIcon size={16} />
@@ -244,26 +247,30 @@ const TaskItem = ({
             <div className="menu-wrapper">
               <button
                 className="action-btn menu-btn"
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setShowMenu(!showMenu);
+                }}
               >
                 <MoreVertical size={16} />
               </button>
 
               {showMenu && (
                 <>
-                  <div className="menu-backdrop" onClick={() => setShowMenu(false)} />
+                  <div className="menu-backdrop" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
                   <div className="dropdown-menu">
-                    <button onClick={() => { onEdit(task); setShowMenu(false); }}>
+                    <button onClick={(e) => { e.stopPropagation(); onEdit(task); setShowMenu(false); }}>
                       <Edit size={14} />
                       編集
                     </button>
                     {onCopy && (
-                      <button onClick={() => { onCopy(task); setShowMenu(false); }}>
+                      <button onClick={(e) => { e.stopPropagation(); onCopy(task); setShowMenu(false); }}>
                         <Copy size={14} />
                         コピー
                       </button>
                     )}
-                    <button onClick={handleDelete} className="delete">
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} className="delete">
                       <Trash2 size={14} />
                       削除
                     </button>
