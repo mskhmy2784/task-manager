@@ -7,8 +7,7 @@ import {
   Filter,
   X,
   ArrowUpDown,
-  Search,
-  CheckSquare
+  Search
 } from 'lucide-react';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
@@ -36,8 +35,6 @@ const TaskListPage = () => {
   const [specialFilter, setSpecialFilter] = useState(''); // 'incomplete', 'overdue', 'onHold'
   const [sortBy, setSortBy] = useState('dueDate');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedTasks, setSelectedTasks] = useState([]);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -168,21 +165,6 @@ const TaskListPage = () => {
     onHold: '保留'
   };
 
-  // 選択モードの切り替え
-  const toggleSelectMode = () => {
-    setSelectMode(!selectMode);
-    setSelectedTasks([]);
-  };
-
-  // タスクの選択/解除
-  const toggleTaskSelection = (taskId) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) 
-        ? prev.filter(id => id !== taskId)
-        : [...prev, taskId]
-    );
-  };
-
   // タスク編集時
   const handleEditTask = (task) => {
     setEditingTask(task);
@@ -219,42 +201,30 @@ const TaskListPage = () => {
 
   return (
     <div className="task-list-page">
-      {/* Header - 改善版レイアウト */}
+      {/* Header */}
       <header className="page-header">
-        {/* 1行目: タイトルと操作ボタン */}
-        <div className="header-row-1">
+        <div className="header-top">
           <h1>タスク一覧</h1>
-          <div className="header-actions">
-            <button 
-              className={`select-btn ${selectMode ? 'active' : ''}`}
-              onClick={toggleSelectMode}
-            >
-              <CheckSquare size={18} />
-              <span>選択</span>
-            </button>
-            <button className="add-task-btn" onClick={() => setShowModal(true)}>
-              <Plus size={20} />
-              <span>新規タスク</span>
-            </button>
-          </div>
+          <button className="add-task-btn" onClick={() => setShowModal(true)}>
+            <Plus size={20} />
+            <span>新規タスク</span>
+          </button>
         </div>
 
-        {/* 2行目: 検索ボックス */}
-        <div className="header-row-2">
-          <div className="search-bar">
-            <Search size={18} />
-            <input
-              type="text"
-              placeholder="タスクを検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button className="clear-search" onClick={() => setSearchQuery('')}>
-                <X size={16} />
-              </button>
-            )}
-          </div>
+        {/* Search */}
+        <div className="search-bar">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="タスクを検索..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button className="clear-search" onClick={() => setSearchQuery('')}>
+              <X size={16} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -362,24 +332,28 @@ const TaskListPage = () => {
         {filteredTasks.length === 0 ? (
           <div className="empty-state">
             <p>{hasActiveFilters ? '条件に一致するタスクがありません' : 'タスクがありません'}</p>
-            <button className="add-task-link" onClick={() => setShowModal(true)}>
-              <Plus size={18} />
-              <span>タスクを追加</span>
-            </button>
+            {!hasActiveFilters && (
+              <button className="add-task-link" onClick={() => setShowModal(true)}>
+                <Plus size={16} />
+                タスクを追加する
+              </button>
+            )}
           </div>
         ) : (
           <div className="task-list">
-            {filteredTasks.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onEdit={handleEditTask}
-                onCopy={handleCopyTask}
-                selectMode={selectMode}
-                isSelected={selectedTasks.includes(task.id)}
-                onToggleSelect={() => toggleTaskSelection(task.id)}
-              />
-            ))}
+            {filteredTasks.map(task => {
+              const startDate = task.startDate || task.dueDate;
+              const isFuture = startDate && startDate > todayStr;
+              return (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onEdit={handleEditTask}
+                  onCopy={handleCopyTask}
+                  isFuture={isFuture}
+                />
+              );
+            })}
           </div>
         )}
       </div>

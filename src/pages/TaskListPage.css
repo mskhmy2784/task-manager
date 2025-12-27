@@ -27,55 +27,23 @@
   to { transform: rotate(360deg); }
 }
 
-/* Page Header - 改善版 */
+/* Page Header */
 .page-header {
   margin-bottom: 20px;
 }
 
-/* 1行目: タイトルと操作ボタン */
-.header-row-1 {
+.header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
 }
 
-.header-row-1 h1 {
+.header-top h1 {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.select-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  color: #6b7280;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.select-btn:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-}
-
-.select-btn.active {
-  background: #eff6ff;
-  border-color: #4A90D9;
-  color: #4A90D9;
 }
 
 .add-task-btn {
@@ -96,11 +64,6 @@
   background: #3b7dc4;
 }
 
-/* 2行目: 検索ボックス */
-.header-row-2 {
-  width: 100%;
-}
-
 /* Search Bar */
 .search-bar {
   display: flex;
@@ -110,7 +73,6 @@
   background: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  width: 100%;
 }
 
 .search-bar svg {
@@ -124,7 +86,6 @@
   outline: none;
   font-size: 0.9375rem;
   color: #1f2937;
-  min-width: 0;
 }
 
 .search-bar input::placeholder {
@@ -358,27 +319,13 @@
 
 /* Responsive */
 @media (max-width: 640px) {
-  .header-row-1 {
+  .header-top {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
 
-  .header-row-1 h1 {
-    text-align: center;
-  }
-
-  .header-actions {
-    justify-content: center;
-  }
-
   .add-task-btn {
-    flex: 1;
-    justify-content: center;
-  }
-
-  .select-btn {
-    flex: 1;
     justify-content: center;
   }
 
