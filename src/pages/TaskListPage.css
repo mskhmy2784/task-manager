@@ -27,11 +27,12 @@
   to { transform: rotate(360deg); }
 }
 
-/* Page Header */
+/* Page Header - B案レイアウト */
 .page-header {
   margin-bottom: 20px;
 }
 
+/* 1行目: タイトルとボタン */
 .header-top {
   display: flex;
   align-items: center;
@@ -46,6 +47,38 @@
   margin: 0;
 }
 
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 選択ボタン */
+.select-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.select-btn.active {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
 .add-task-btn {
   display: flex;
   align-items: center;
@@ -58,13 +91,14 @@
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease;
+  white-space: nowrap;
 }
 
 .add-task-btn:hover {
   background: #3b7dc4;
 }
 
-/* Search Bar */
+/* 2行目: 検索バー（フル幅） */
 .search-bar {
   display: flex;
   align-items: center;
@@ -73,6 +107,7 @@
   background: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 8px;
+  width: 100%;
 }
 
 .search-bar svg {
@@ -104,6 +139,138 @@
 
 .clear-search:hover {
   color: #6b7280;
+}
+
+/* 一括操作バー */
+.bulk-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.bulk-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.select-all-btn {
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-all-btn:hover {
+  background: #f3f4f6;
+}
+
+.selected-count {
+  font-size: 0.875rem;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.bulk-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bulk-status-dropdown {
+  position: relative;
+}
+
+.bulk-status-btn {
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulk-status-btn:hover {
+  background: #f3f4f6;
+}
+
+.bulk-status-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bulk-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.bulk-dropdown-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 110;
+  min-width: 120px;
+  overflow: hidden;
+}
+
+.bulk-dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: background 0.2s ease;
+}
+
+.bulk-dropdown-menu button:hover {
+  background: #f3f4f6;
+}
+
+.bulk-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulk-delete-btn:hover {
+  background: #fecaca;
+}
+
+.bulk-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Controls Section */
@@ -212,7 +379,6 @@
   border: 1px solid #e5e7eb;
 }
 
-/* Special Filter Badge */
 .special-filter-badge {
   display: flex;
   align-items: center;
@@ -325,7 +491,14 @@
     gap: 12px;
   }
 
-  .add-task-btn {
+  .header-buttons {
+    display: flex;
+    gap: 10px;
+  }
+
+  .header-buttons .select-btn,
+  .header-buttons .add-task-btn {
+    flex: 1;
     justify-content: center;
   }
 
@@ -349,5 +522,16 @@
 
   .filters-panel select {
     width: 100%;
+  }
+
+  .bulk-actions-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bulk-actions-left,
+  .bulk-actions-right {
+    width: 100%;
+    justify-content: space-between;
   }
 }

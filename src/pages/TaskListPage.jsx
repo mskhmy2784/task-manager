@@ -7,7 +7,9 @@ import {
   Filter,
   X,
   ArrowUpDown,
-  Search
+  Search,
+  CheckSquare,
+  Trash2
 } from 'lucide-react';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
@@ -19,7 +21,9 @@ const TaskListPage = () => {
     tasks,
     mainCategories,
     tags,
-    isLoading
+    isLoading,
+    deleteTask,
+    updateTask
   } = useData();
 
   const [showModal, setShowModal] = useState(false);
@@ -32,9 +36,15 @@ const TaskListPage = () => {
     status: '',
     tagId: ''
   });
-  const [specialFilter, setSpecialFilter] = useState(''); // 'incomplete', 'overdue', 'onHold'
+  const [specialFilter, setSpecialFilter] = useState('');
   const [sortBy, setSortBy] = useState('dueDate');
   const [sortOrder, setSortOrder] = useState('asc');
+  
+  // 選択モード関連
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -44,17 +54,14 @@ const TaskListPage = () => {
     if (filterParam) {
       setSpecialFilter(filterParam);
       setShowFilters(true);
-      // Clear URL param after applying
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
-    // Filter out tasks without title
     let result = tasks.filter(task => task.title && task.title.trim() !== '');
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(task => 
@@ -63,22 +70,18 @@ const TaskListPage = () => {
       );
     }
 
-    // Category filter
     if (filters.mainCategoryId) {
       result = result.filter(task => task.mainCategoryId === filters.mainCategoryId);
     }
 
-    // Priority filter
     if (filters.priority) {
       result = result.filter(task => task.priority === filters.priority);
     }
 
-    // Status filter
     if (filters.status) {
       result = result.filter(task => task.status === filters.status);
     }
 
-    // Tag filter
     if (filters.tagId) {
       result = result.filter(task => {
         if (!task.tags) return false;
@@ -87,21 +90,16 @@ const TaskListPage = () => {
       });
     }
 
-    // Special filters (from dashboard)
     if (specialFilter === 'incomplete') {
-      // 未完了: status が done, onHold 以外
       result = result.filter(task => task.status !== 'done' && task.status !== 'onHold');
     } else if (specialFilter === 'overdue') {
-      // 期限超過: 期限日が今日より前で status が done 以外
       result = result.filter(task => 
         task.dueDate && task.dueDate < todayStr && task.status !== 'done'
       );
     } else if (specialFilter === 'onHold') {
-      // 保留中
       result = result.filter(task => task.status === 'onHold');
     }
 
-    // Sort
     const priorityOrder = { veryHigh: 0, high: 1, medium: 2, low: 3 };
     const statusOrder = { todo: 0, inProgress: 1, onHold: 2, done: 3 };
 
@@ -141,15 +139,6 @@ const TaskListPage = () => {
     setSpecialFilter('');
   };
 
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('asc');
-    }
-  };
-
   const hasActiveFilters = filters.mainCategoryId || filters.priority || filters.status || filters.tagId || searchQuery || specialFilter;
 
   const specialFilterLabels = {
@@ -158,11 +147,66 @@ const TaskListPage = () => {
     onHold: '保留中タスク'
   };
 
-  const statusLabels = {
-    todo: '未着手',
-    inProgress: '進行中',
-    done: '完了',
-    onHold: '保留'
+  // 選択モードの切り替え
+  const toggleSelectMode = () => {
+    setSelectMode(!selectMode);
+    setSelectedTasks([]);
+    setShowBulkActions(false);
+  };
+
+  // タスクの選択/解除
+  const toggleTaskSelection = (taskId) => {
+    setSelectedTasks(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+
+  // 全選択/全解除
+  const toggleSelectAll = () => {
+    if (selectedTasks.length === filteredTasks.length) {
+      setSelectedTasks([]);
+    } else {
+      setSelectedTasks(filteredTasks.map(task => task.id));
+    }
+  };
+
+  // 一括削除
+  const handleBulkDelete = async () => {
+    if (selectedTasks.length === 0) return;
+    if (!window.confirm(`${selectedTasks.length}件のタスクを削除しますか？`)) return;
+    
+    setBulkUpdating(true);
+    try {
+      for (const taskId of selectedTasks) {
+        await deleteTask(taskId);
+      }
+      setSelectedTasks([]);
+      setShowBulkActions(false);
+    } catch (error) {
+      console.error('Failed to delete tasks:', error);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  // 一括ステータス更新
+  const handleBulkStatusUpdate = async (newStatus) => {
+    if (selectedTasks.length === 0) return;
+    
+    setBulkUpdating(true);
+    try {
+      for (const taskId of selectedTasks) {
+        await updateTask(taskId, { status: newStatus });
+      }
+      setSelectedTasks([]);
+      setShowBulkActions(false);
+    } catch (error) {
+      console.error('Failed to update tasks:', error);
+    } finally {
+      setBulkUpdating(false);
+    }
   };
 
   // タスク編集時
@@ -201,17 +245,27 @@ const TaskListPage = () => {
 
   return (
     <div className="task-list-page">
-      {/* Header */}
+      {/* Header - B案レイアウト */}
       <header className="page-header">
+        {/* 1行目: タイトルとボタン */}
         <div className="header-top">
           <h1>タスク一覧</h1>
-          <button className="add-task-btn" onClick={() => setShowModal(true)}>
-            <Plus size={20} />
-            <span>新規タスク</span>
-          </button>
+          <div className="header-buttons">
+            <button 
+              className={`select-btn ${selectMode ? 'active' : ''}`}
+              onClick={toggleSelectMode}
+            >
+              <CheckSquare size={18} />
+              <span>選択</span>
+            </button>
+            <button className="add-task-btn" onClick={() => setShowModal(true)}>
+              <Plus size={20} />
+              <span>新規タスク</span>
+            </button>
+          </div>
         </div>
 
-        {/* Search */}
+        {/* 2行目: 検索バー（フル幅） */}
         <div className="search-bar">
           <Search size={18} />
           <input
@@ -227,6 +281,53 @@ const TaskListPage = () => {
           )}
         </div>
       </header>
+
+      {/* 選択モード時の一括操作バー */}
+      {selectMode && (
+        <div className="bulk-actions-bar">
+          <div className="bulk-actions-left">
+            <button 
+              className="select-all-btn"
+              onClick={toggleSelectAll}
+            >
+              {selectedTasks.length === filteredTasks.length ? '全解除' : '全選択'}
+            </button>
+            <span className="selected-count">{selectedTasks.length}件選択中</span>
+          </div>
+          {selectedTasks.length > 0 && (
+            <div className="bulk-actions-right">
+              <div className="bulk-status-dropdown">
+                <button 
+                  className="bulk-status-btn"
+                  onClick={() => setShowBulkActions(!showBulkActions)}
+                  disabled={bulkUpdating}
+                >
+                  ステータス変更
+                </button>
+                {showBulkActions && (
+                  <>
+                    <div className="bulk-backdrop" onClick={() => setShowBulkActions(false)} />
+                    <div className="bulk-dropdown-menu">
+                      <button onClick={() => handleBulkStatusUpdate('todo')}>未着手</button>
+                      <button onClick={() => handleBulkStatusUpdate('inProgress')}>進行中</button>
+                      <button onClick={() => handleBulkStatusUpdate('done')}>完了</button>
+                      <button onClick={() => handleBulkStatusUpdate('onHold')}>保留</button>
+                    </div>
+                  </>
+                )}
+              </div>
+              <button 
+                className="bulk-delete-btn"
+                onClick={handleBulkDelete}
+                disabled={bulkUpdating}
+              >
+                <Trash2 size={16} />
+                削除
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filters & Sort */}
       <div className="controls-section">
@@ -351,6 +452,9 @@ const TaskListPage = () => {
                   onEdit={handleEditTask}
                   onCopy={handleCopyTask}
                   isFuture={isFuture}
+                  selectMode={selectMode}
+                  isSelected={selectedTasks.includes(task.id)}
+                  onToggleSelect={() => toggleTaskSelection(task.id)}
                 />
               );
             })}

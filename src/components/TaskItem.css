@@ -31,6 +31,21 @@
   background: #f0f9ff;
 }
 
+/* 選択モード */
+.task-item-card.select-mode {
+  cursor: pointer;
+}
+
+.task-item-card.select-mode:hover {
+  border-color: #93c5fd;
+  background: #f0f9ff;
+}
+
+.task-item-card.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
 .task-main {
   display: flex;
   align-items: flex-start;
@@ -69,6 +84,32 @@
   cursor: not-allowed;
 }
 
+/* 選択チェックボックス */
+.select-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s ease;
+}
+
+.select-checkbox:hover {
+  border-color: #3b82f6;
+}
+
+.select-checkbox.checked {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
 /* Task Content */
 .task-content {
   flex: 1;
@@ -81,6 +122,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .task-title {
@@ -186,11 +228,11 @@
 
 /* ========================================
    ステータスドロップダウン
-   v1.0.8 修正: 上に表示するように変更
+   v1.0.8 修正: 常に上に表示
    ======================================== */
 .status-dropdown {
   position: absolute;
-  bottom: 100%;      /* 上に表示 */
+  bottom: 100%;      /* 常に上に表示 */
   right: 0;          /* 右揃え */
   margin-bottom: 4px;
   background: #ffffff;
@@ -245,6 +287,7 @@
   gap: 12px;
   font-size: 0.8125rem;
   margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .category-label {
@@ -412,5 +455,15 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+  }
+
+  .task-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .task-badges {
+    align-self: flex-start;
   }
 }
